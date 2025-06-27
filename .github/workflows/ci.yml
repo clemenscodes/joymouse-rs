@@ -1,0 +1,76 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    types: [opened, synchronize]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  NIX_CACHE: clemenscodes
+  NIX_DEV_PROFILE: w3mem
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: cachix/install-nix-action@v31
+        with:
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: cachix/cachix-action@v14
+        with:
+          name: ${{ env.NIX_CACHE }}
+          authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+      - name: Cache flake inputs
+        run: |
+          nix flake archive --json --accept-flake-config \
+            | jq -r '.path,(.inputs|to_entries[].value.path)' \
+            | cachix push ${{ env.NIX_CACHE }}
+      - name: Cache development shell
+        run: |
+          nix develop --accept-flake-config \
+            --profile ${{ env.NIX_DEV_PROFILE }} \
+            -c true
+          cachix push ${{ env.NIX_CACHE }} ${{ env.NIX_DEV_PROFILE }}
+      - name: Check flake
+        run: nix flake check --accept-flake-config
+      - name: Build static musl joymouse
+        run: |
+          nix build .#joymouse-musl-static --accept-flake-config --json \
+            | jq -r '.[].outputs | to_entries[].value' \
+            | cachix push ${{ env.NIX_CACHE }}
+          joymouse_musl_static=$(readlink -f result/bin/joymouse)
+          echo "joymouse_musl_static=$joymouse_musl_static" >> $GITHUB_ENV
+      - name: Build glibc joymouse
+        run: |
+          nix build .#joymouse-glibc --accept-flake-config --json \
+            | jq -r '.[].outputs | to_entries[].value' \
+            | cachix push ${{ env.NIX_CACHE }}
+          joymouse_glibc_path=$(readlink -f result/bin/joymouse)
+          echo "joymouse_glibc_path=$joymouse_glibc_path" >> $GITHUB_ENV
+      - name: Prepare release artifacts
+        run: |
+          mkdir -p release
+          cp "$joymouse_musl_static_path" release/joymouse-musl-static
+          cp "$joymouse_glibc_path" release/joymouse
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/heads/master')
+        with:
+          name: Downloads
+          tag_name: latest
+          body: |
+            Latest compiled executables from the master branch:
+
+            - `joymouse-musl-static`: Statically linked Linux build
+            - `joymouse`: Dynamically linked (glibc) Linux build
+          files: release/*
+          token: ${{ secrets.PAT }}
+          draft: false
+          prerelease: false
+          make_latest: true

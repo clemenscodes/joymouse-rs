@@ -1,0 +1,10 @@
+[package]
+name = "joymouse"
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+authors = ["Clemens Horn <me@clemenshorn.com>"]
+
+[dependencies]
+evdev = "0.13.1"
+sdl3 = "0.14.33"
