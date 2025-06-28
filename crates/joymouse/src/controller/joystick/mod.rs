@@ -2,7 +2,10 @@ mod axis;
 mod event;
 mod state;
 
-use crate::controller::{button::{ButtonError, ControllerButton}, Controller};
+use crate::controller::{
+  Controller,
+  button::{ButtonError, ControllerButton, KEYBOARD_BUTTON_MAP},
+};
 
 use std::sync::LazyLock;
 
@@ -21,10 +24,10 @@ pub struct JoyStickKeys {
 impl Default for JoyStickKeys {
   fn default() -> Self {
     Self {
-      forward: KeyCode::from(ControllerButton::Forward),
-      backward: KeyCode::from(ControllerButton::Backward),
-      port: KeyCode::from(ControllerButton::Port),
-      starboard: KeyCode::from(ControllerButton::Starboard),
+      forward: *KEYBOARD_BUTTON_MAP.get(&ControllerButton::Forward).unwrap(),
+      backward: *KEYBOARD_BUTTON_MAP.get(&ControllerButton::Backward).unwrap(),
+      port: *KEYBOARD_BUTTON_MAP.get(&ControllerButton::Port).unwrap(),
+      starboard: *KEYBOARD_BUTTON_MAP.get(&ControllerButton::Starboard).unwrap(),
     }
   }
 }
@@ -40,7 +43,7 @@ pub enum JoyStickError {
   Axis(AxisError),
   UnsupportedAxisCode(RelativeAxisCode),
   UnsupportedKeyCode(KeyCode),
-  Button(ButtonError)
+  Button(ButtonError),
 }
 
 impl From<AxisError> for JoyStickError {
@@ -105,8 +108,8 @@ impl Controller {
 
     let value = match event.joystick() {
       JoyStick::Left => match event.axis() {
-        axis::JoyStickAxis::X => self.left_stick.x(delta),
-        axis::JoyStickAxis::Y => self.left_stick.y(delta),
+        axis::JoyStickAxis::X => self.left_stick.x(-delta),
+        axis::JoyStickAxis::Y => self.left_stick.y(-delta),
       },
       JoyStick::Right => match event.axis() {
         axis::JoyStickAxis::X => self.right_stick.x(delta),
@@ -114,18 +117,9 @@ impl Controller {
       },
     };
 
-    println!("{:#?}", self);
-
     let virtual_event = InputEvent::new(EventType::ABSOLUTE.0, code.0, value);
     let events = vec![virtual_event];
-    match self.virtual_device.emit(&events) {
-      Ok(_) => {
-        println!("Emitted controller joystick event");
-      }
-      Err(_) => {
-        eprintln!("Failed to emit controller joystick event");
-      }
-    };
+    self.virtual_device.emit(&events).unwrap();
   }
 }
 

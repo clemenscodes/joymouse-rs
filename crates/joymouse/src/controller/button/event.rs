@@ -41,7 +41,7 @@ impl TryFrom<KeyEvent> for ControllerButtonEvent {
 
 impl From<ControllerButtonEvent> for InputEvent {
   fn from(value: ControllerButtonEvent) -> Self {
-    let code = KeyCode::from(value.button());
+    let code = KeyCode::try_from(value.button()).unwrap();
     let value = value.state().as_value();
     Self::new(EventType::KEY.0, code.0, value)
   }

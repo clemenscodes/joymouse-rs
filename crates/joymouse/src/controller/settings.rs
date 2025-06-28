@@ -6,7 +6,7 @@ pub struct ControllerSettings {
 }
 
 impl ControllerSettings {
-  pub fn sensitivity(&self) -> i32{
+  pub fn sensitivity(&self) -> i32 {
     self.sensitivity
   }
 }

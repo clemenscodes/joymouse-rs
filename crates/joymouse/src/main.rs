@@ -2,7 +2,10 @@ mod controller;
 
 use crate::controller::{Controller, ControllerError, ControllerEvent};
 
-use std::os::fd::AsRawFd;
+use std::{
+  os::fd::AsRawFd,
+  sync::{Arc, Mutex},
+};
 
 use epoll::{ControlOptions::EPOLL_CTL_ADD, Event, Events};
 use evdev::{Device, EventType, KeyCode, MiscCode, RelativeAxisCode};
@@ -12,24 +15,22 @@ fn main() {
 
   let mut keyboards = find_keyboards();
 
-  let mouse = mice.first_mut().unwrap();
+  let mouse = mice.remove(0);
 
-  let xremap_keyboard = keyboards.iter_mut().find(|keyboard| {
-    if let Some(name) = keyboard.name() {
-      return name.contains("xremap");
-    }
-    false
-  });
+  let xremap_keyboard = keyboards.iter().position(|k| k.name().map(|n| n.contains("xremap")).unwrap_or(false));
 
-  let keyboard = if let Some(keyboard) = xremap_keyboard {
-    keyboard
+  let keyboard = if let Some(index) = xremap_keyboard {
+    keyboards.remove(index)
   } else {
-    keyboards.first_mut().unwrap()
+    keyboards.remove(0)
   };
 
-  let mut controller = Controller::try_create().unwrap();
+  let mouse = Arc::new(Mutex::new(mouse));
+  let keyboard = Arc::new(Mutex::new(keyboard));
 
-  process_input_events(mouse, keyboard, &mut controller);
+  let mut controller = Controller::try_create(mouse, keyboard).unwrap();
+
+  process_input_events(&mut controller);
 }
 
 fn find_mice() -> Vec<Device> {
@@ -137,46 +138,43 @@ fn extract_input_number(phys: Option<&str>) -> Option<u32> {
     .and_then(|n| n.parse::<u32>().ok())
 }
 
-fn process_input_events(mouse: &mut Device, keyboard: &mut Device, controller: &mut Controller) {
-  println!(
-    "Converting mouse events from {:?} and keyboard events from {:#?} to events for {:#?}",
-    mouse.name().unwrap(),
-    keyboard.name().unwrap(),
-    controller
-  );
+fn process_input_events(controller: &mut Controller) {
+  let mouse_fd = controller.mouse().lock().unwrap().as_raw_fd();
+  let keyboard_fd = controller.keyboard().lock().unwrap().as_raw_fd();
 
-  let mouse_file_descriptor = mouse.as_raw_fd();
-  let keyboard_file_descriptor = keyboard.as_raw_fd();
+  let epoll_fd = epoll::create(false).expect("Failed to create epoll fd");
 
-  let epoll_file_descriptor = match epoll::create(false) {
-    Ok(file_descriptor) => file_descriptor,
-    Err(_) => {
-      eprintln!("Failed to create epoll file descriptor");
-      std::process::exit(1);
-    }
-  };
+  let event_mouse = Event::new(Events::EPOLLIN, mouse_fd as u64);
+  let event_keyboard = Event::new(Events::EPOLLIN, keyboard_fd as u64);
 
-  let event_mouse = Event::new(Events::EPOLLIN, mouse_file_descriptor as u64);
-  let event_keyboard = Event::new(Events::EPOLLIN, keyboard_file_descriptor as u64);
+  epoll::ctl(epoll_fd, EPOLL_CTL_ADD, mouse_fd, event_mouse).unwrap();
+  epoll::ctl(epoll_fd, EPOLL_CTL_ADD, keyboard_fd, event_keyboard).unwrap();
 
-  epoll::ctl(epoll_file_descriptor, EPOLL_CTL_ADD, mouse_file_descriptor, event_mouse).unwrap();
-  epoll::ctl(epoll_file_descriptor, EPOLL_CTL_ADD, keyboard_file_descriptor, event_keyboard).unwrap();
+  let mut fd_map = std::collections::HashMap::new();
 
-  let mut file_descriptor_map = std::collections::HashMap::new();
+  let mouse = Arc::clone(controller.mouse());
+  let keyboard = Arc::clone(controller.keyboard());
 
-  file_descriptor_map.insert(mouse_file_descriptor, &mut *mouse);
-  file_descriptor_map.insert(keyboard_file_descriptor, &mut *keyboard);
+  fd_map.insert(mouse_fd, mouse);
+  fd_map.insert(keyboard_fd, keyboard);
 
   let mut events = vec![Event::new(Events::empty(), 0); 2];
 
   loop {
-    let num_events = epoll::wait(epoll_file_descriptor, -1, &mut events).unwrap();
-    for event in events.iter().take(num_events) {
-      let file_descriptor = event.data as i32;
-      if let Some(device) = file_descriptor_map.get_mut(&file_descriptor) {
-        for event in device.fetch_events().unwrap() {
+    let num_events = epoll::wait(epoll_fd, -1, &mut events).unwrap();
+
+    for epoll_event in events.iter().take(num_events) {
+      let fd = epoll_event.data as i32;
+
+      if let Some(device) = fd_map.get(&fd) {
+        let events: Vec<_> = {
+          let mut guard = device.lock().unwrap();
+          guard.fetch_events().unwrap().collect()
+        };
+
+        for event in events {
           match ControllerEvent::try_from(event.destructure()) {
-            Ok(event) => match event {
+            Ok(controller_event) => match controller_event {
               ControllerEvent::Button {
                 event,
               } => controller.handle_button_event(event),
@@ -185,13 +183,9 @@ fn process_input_events(mouse: &mut Device, keyboard: &mut Device, controller: &
               } => controller.handle_joystick_event(event),
             },
             Err(err) => match err {
-              ControllerError::Button(button_error) => {
-                eprintln!("Failed to convert event to a controller button event: {:#?}", button_error);
-              }
-              ControllerError::JoyStick(joy_stick_error) => {
-                eprintln!("Failed to convert event to a joystick event: {:#?}", joy_stick_error);
-              }
-              _ => (),
+              ControllerError::Button(e) => eprintln!("Button error: {:#?}", e),
+              ControllerError::JoyStick(e) => eprintln!("Joystick error: {:#?}", e),
+              ControllerError::UnsupportedEvent(e) => eprintln!("Unsupported event: {:#?}", e),
             },
           }
         }

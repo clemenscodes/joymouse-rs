@@ -3,21 +3,28 @@ mod event;
 mod joystick;
 mod settings;
 
+use std::sync::{Arc, Mutex};
+
 use crate::controller::joystick::JoyStickState;
 
 use evdev::{
-  AbsInfo, AbsoluteAxisCode, AttributeSet, BusType, InputId, KeyCode, UinputAbsSetup, uinput::VirtualDevice,
+  AbsInfo, AbsoluteAxisCode, AttributeSet, BusType, Device, InputId, KeyCode, UinputAbsSetup, uinput::VirtualDevice,
 };
 
 #[derive(Debug)]
 pub struct Controller {
+  mouse: Arc<Mutex<Device>>,
+  keyboard: Arc<Mutex<Device>>,
   virtual_device: VirtualDevice,
   left_stick: JoyStickState,
   right_stick: JoyStickState,
 }
 
 impl Controller {
-  pub fn try_create() -> Result<Self, Box<dyn std::error::Error>> {
+  pub fn try_create(
+    mouse: Arc<Mutex<Device>>,
+    keyboard: Arc<Mutex<Device>>,
+  ) -> Result<Self, Box<dyn std::error::Error>> {
     let builder = VirtualDevice::builder()?;
 
     let name = "JoyMouse";
@@ -70,10 +77,20 @@ impl Controller {
       .build()?;
 
     Ok(Self {
+      mouse,
+      keyboard,
       virtual_device,
       left_stick: JoyStickState::default(),
       right_stick: JoyStickState::default(),
     })
+  }
+
+  pub fn mouse(&self) -> &Arc<Mutex<Device>> {
+    &self.mouse
+  }
+
+  pub fn keyboard(&self) -> &Arc<Mutex<Device>> {
+    &self.keyboard
   }
 }
 

@@ -47,6 +47,7 @@ pub static KEYBOARD_BUTTON_MAP: LazyLock<HashMap<ControllerButton, KeyCode>> = L
 pub enum ButtonError {
   UnsupportedKeyCode(KeyCode),
   InvalidState(i32),
+  InvalidButton(ControllerButton),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -85,9 +86,30 @@ impl TryFrom<KeyCode> for ControllerButton {
   }
 }
 
-impl From<ControllerButton> for KeyCode {
-  fn from(value: ControllerButton) -> Self {
-    KEYBOARD_BUTTON_MAP.get(&value).copied().unwrap()
+impl TryFrom<ControllerButton> for KeyCode {
+  type Error = ButtonError;
+
+  fn try_from(value: ControllerButton) -> Result<Self, Self::Error> {
+    let code = match value {
+      ControllerButton::South => KeyCode::BTN_SOUTH,
+      ControllerButton::East => KeyCode::BTN_EAST,
+      ControllerButton::North => KeyCode::BTN_WEST,
+      ControllerButton::West => KeyCode::BTN_NORTH,
+      ControllerButton::Up => KeyCode::BTN_DPAD_UP,
+      ControllerButton::Down => KeyCode::BTN_DPAD_DOWN,
+      ControllerButton::Left => KeyCode::BTN_DPAD_LEFT,
+      ControllerButton::Right => KeyCode::BTN_DPAD_RIGHT,
+      ControllerButton::L1 => KeyCode::BTN_TL,
+      ControllerButton::R1 => KeyCode::BTN_TR,
+      ControllerButton::L2 => KeyCode::BTN_TL2,
+      ControllerButton::R2 => KeyCode::BTN_TR2,
+      ControllerButton::L3 => KeyCode::BTN_THUMBL,
+      ControllerButton::R3 => KeyCode::BTN_THUMBR,
+      ControllerButton::Start => KeyCode::BTN_START,
+      ControllerButton::Select => KeyCode::BTN_SELECT,
+      _ => return Err(ButtonError::InvalidButton(value)),
+    };
+    Ok(code)
   }
 }
 
@@ -109,17 +131,9 @@ impl ControllerButton {
 
 impl Controller {
   pub fn handle_button_event(&mut self, event: ControllerButtonEvent) {
-    println!("Handling controller button event: {:#?}", event);
     let virtual_event = InputEvent::from(event);
     let events = vec![virtual_event];
-    match self.virtual_device.emit(&events) {
-      Ok(_) => {
-        println!("Emitted controller button event");
-      }
-      Err(_) => {
-        eprintln!("Failed to emit controller button event");
-      }
-    };
+    self.virtual_device.emit(&events).unwrap();
   }
 }
 
