@@ -1,9 +1,6 @@
-use evdev::KeyEvent;
+use evdev::{EventType, InputEvent, KeyCode, KeyEvent};
 
-use crate::controller::{
-  button::{ButtonError, ControllerButton},
-  state::State,
-};
+use crate::controller::button::{ButtonError, ControllerButton, state::State};
 
 #[derive(Debug)]
 pub struct ControllerButtonEvent {
@@ -39,5 +36,13 @@ impl TryFrom<KeyEvent> for ControllerButtonEvent {
       button,
       state,
     })
+  }
+}
+
+impl From<ControllerButtonEvent> for InputEvent {
+  fn from(value: ControllerButtonEvent) -> Self {
+    let code = KeyCode::from(value.button());
+    let value = value.state().as_value();
+    Self::new(EventType::KEY.0, code.0, value)
   }
 }

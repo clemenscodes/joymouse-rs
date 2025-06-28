@@ -1,14 +1,17 @@
 mod event;
+mod state;
+
+use crate::controller::Controller;
 
 use std::{collections::HashMap, sync::LazyLock};
 
-use evdev::KeyCode;
+use evdev::{InputEvent, KeyCode};
 
 pub static CONTROLLER_KEY_MAP: LazyLock<HashMap<KeyCode, ControllerButton>> = LazyLock::new(|| {
   let mut map = HashMap::new();
 
   map.insert(KeyCode::KEY_SPACE, ControllerButton::South);
-  map.insert(KeyCode::KEY_LEFTCTRL, ControllerButton::East);
+  map.insert(KeyCode::KEY_LEFTSHIFT, ControllerButton::East);
   map.insert(KeyCode::KEY_F, ControllerButton::North);
   map.insert(KeyCode::KEY_C, ControllerButton::West);
   map.insert(KeyCode::KEY_UP, ControllerButton::Up);
@@ -34,6 +37,11 @@ pub static CONTROLLER_KEY_MAP: LazyLock<HashMap<KeyCode, ControllerButton>> = La
 
   map
 });
+
+#[rustfmt::skip]
+pub static KEYBOARD_BUTTON_MAP: LazyLock<HashMap<ControllerButton, KeyCode>> = LazyLock::new(|| 
+  CONTROLLER_KEY_MAP.iter().map(|(k, v)| (*v, *k)).collect()
+);
 
 #[derive(Debug)]
 pub enum ButtonError {
@@ -77,6 +85,12 @@ impl TryFrom<KeyCode> for ControllerButton {
   }
 }
 
+impl From<ControllerButton> for KeyCode {
+  fn from(value: ControllerButton) -> Self {
+    KEYBOARD_BUTTON_MAP.get(&value).copied().unwrap()
+  }
+}
+
 #[rustfmt::skip]
 impl ControllerButton {
   pub fn all() -> &'static [Self] {
@@ -90,6 +104,22 @@ impl ControllerButton {
       L3, R3,
       Start, Select,
     ]
+  }
+}
+
+impl Controller {
+  pub fn handle_button_event(&mut self, event: ControllerButtonEvent) {
+    println!("Handling controller button event: {:#?}", event);
+    let virtual_event = InputEvent::from(event);
+    let events = vec![virtual_event];
+    match self.virtual_device.emit(&events) {
+      Ok(_) => {
+        println!("Emitted controller button event");
+      }
+      Err(_) => {
+        eprintln!("Failed to emit controller button event");
+      }
+    };
   }
 }
 

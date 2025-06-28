@@ -178,10 +178,10 @@ fn process_input_events(mouse: &mut Device, keyboard: &mut Device, controller: &
           match ControllerEvent::try_from(event.destructure()) {
             Ok(event) => match event {
               ControllerEvent::Button {
-                ref event,
+                event,
               } => controller.handle_button_event(event),
               ControllerEvent::JoyStick {
-                ref event,
+                event,
               } => controller.handle_joystick_event(event),
             },
             Err(err) => match err {

@@ -1,14 +1,46 @@
-use evdev::{KeyCode, KeyEvent, RelativeAxisCode, RelativeAxisEvent};
-
-use crate::controller::joystick::axis::{AxisError, JoyStickAxis};
-
 mod axis;
+mod event;
+mod state;
+
+use crate::controller::{button::{ButtonError, ControllerButton}, Controller};
+
+use std::sync::LazyLock;
+
+use evdev::{AbsoluteAxisCode, EventType, InputEvent, KeyCode, KeyEvent, RelativeAxisCode, RelativeAxisEvent};
+
+pub static JOYSTICK_KEYS: LazyLock<JoyStickKeys> = LazyLock::new(JoyStickKeys::default);
+
+#[derive(Debug, Copy, Clone)]
+pub struct JoyStickKeys {
+  forward: KeyCode,
+  backward: KeyCode,
+  port: KeyCode,
+  starboard: KeyCode,
+}
+
+impl Default for JoyStickKeys {
+  fn default() -> Self {
+    Self {
+      forward: KeyCode::from(ControllerButton::Forward),
+      backward: KeyCode::from(ControllerButton::Backward),
+      port: KeyCode::from(ControllerButton::Port),
+      starboard: KeyCode::from(ControllerButton::Starboard),
+    }
+  }
+}
+
+impl JoyStickKeys {
+  pub fn code_is_joystick_key(&self, code: KeyCode) -> bool {
+    code == self.forward || code == self.backward || code == self.port || code == self.starboard
+  }
+}
 
 #[derive(Debug)]
 pub enum JoyStickError {
   Axis(AxisError),
   UnsupportedAxisCode(RelativeAxisCode),
   UnsupportedKeyCode(KeyCode),
+  Button(ButtonError)
 }
 
 impl From<AxisError> for JoyStickError {
@@ -48,14 +80,10 @@ impl TryFrom<KeyCode> for JoyStick {
   type Error = JoyStickError;
 
   fn try_from(value: KeyCode) -> Result<Self, Self::Error> {
-    let joystick = match value {
-      KeyCode::KEY_W => Self::Left,
-      KeyCode::KEY_A => Self::Left,
-      KeyCode::KEY_S => Self::Left,
-      KeyCode::KEY_D => Self::Left,
-      other => return Err(JoyStickError::UnsupportedKeyCode(other)),
-    };
-    Ok(joystick)
+    if !JOYSTICK_KEYS.code_is_joystick_key(value) {
+      return Err(JoyStickError::UnsupportedKeyCode(value));
+    }
+    Ok(JoyStick::Left)
   }
 }
 
@@ -67,39 +95,40 @@ impl TryFrom<KeyEvent> for JoyStick {
   }
 }
 
-#[derive(Debug)]
-pub struct ControllerJoyStickEvent {
-  joystick: JoyStick,
-  axis: JoyStickAxis,
-  value: i32,
-}
+impl Controller {
+  pub fn handle_joystick_event(&mut self, event: ControllerJoyStickEvent) {
+    println!("Handling controller joystick event: {:#?}", event);
 
-impl ControllerJoyStickEvent {
-  pub fn joystick(&self) -> &JoyStick {
-    &self.joystick
-  }
+    let code = AbsoluteAxisCode::from(&event);
 
-  pub fn axis(&self) -> &JoyStickAxis {
-    &self.axis
-  }
+    let delta = event.value();
 
-  pub fn value(&self) -> i32 {
-    self.value
-  }
-}
+    let value = match event.joystick() {
+      JoyStick::Left => match event.axis() {
+        axis::JoyStickAxis::X => self.left_stick.x(delta),
+        axis::JoyStickAxis::Y => self.left_stick.y(delta),
+      },
+      JoyStick::Right => match event.axis() {
+        axis::JoyStickAxis::X => self.right_stick.x(delta),
+        axis::JoyStickAxis::Y => self.right_stick.y(delta),
+      },
+    };
 
-impl TryFrom<RelativeAxisEvent> for ControllerJoyStickEvent {
-  type Error = JoyStickError;
+    println!("{:#?}", self);
 
-  fn try_from(value: RelativeAxisEvent) -> Result<Self, Self::Error> {
-    let (code, value) = value.destructure();
-    let joystick = JoyStick::try_from(code)?;
-    let axis = JoyStickAxis::try_from(code)?;
-
-    Ok(Self {
-      joystick,
-      axis,
-      value,
-    })
+    let virtual_event = InputEvent::new(EventType::ABSOLUTE.0, code.0, value);
+    let events = vec![virtual_event];
+    match self.virtual_device.emit(&events) {
+      Ok(_) => {
+        println!("Emitted controller joystick event");
+      }
+      Err(_) => {
+        eprintln!("Failed to emit controller joystick event");
+      }
+    };
   }
 }
+
+pub use axis::AxisError;
+pub use event::ControllerJoyStickEvent;
+pub use state::JoyStickState;

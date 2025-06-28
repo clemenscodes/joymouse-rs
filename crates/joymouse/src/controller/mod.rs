@@ -1,9 +1,9 @@
 mod button;
 mod event;
 mod joystick;
-mod state;
+mod settings;
 
-use crate::controller::{button::ControllerButtonEvent, joystick::ControllerJoyStickEvent};
+use crate::controller::joystick::JoyStickState;
 
 use evdev::{
   AbsInfo, AbsoluteAxisCode, AttributeSet, BusType, InputId, KeyCode, UinputAbsSetup, uinput::VirtualDevice,
@@ -11,7 +11,9 @@ use evdev::{
 
 #[derive(Debug)]
 pub struct Controller {
-  device: VirtualDevice,
+  virtual_device: VirtualDevice,
+  left_stick: JoyStickState,
+  right_stick: JoyStickState,
 }
 
 impl Controller {
@@ -57,7 +59,7 @@ impl Controller {
     let rx_axis = UinputAbsSetup::new(AbsoluteAxisCode::ABS_RX, axis_info);
     let ry_axis = UinputAbsSetup::new(AbsoluteAxisCode::ABS_RY, axis_info);
 
-    let device = builder
+    let virtual_device = builder
       .name(&name)
       .input_id(input_id)
       .with_keys(&button_set)?
@@ -68,16 +70,10 @@ impl Controller {
       .build()?;
 
     Ok(Self {
-      device,
+      virtual_device,
+      left_stick: JoyStickState::default(),
+      right_stick: JoyStickState::default(),
     })
-  }
-
-  pub fn handle_button_event(&mut self, event: &ControllerButtonEvent) {
-    println!("Handling controller button event: {:#?}", event);
-  }
-
-  pub fn handle_joystick_event(&mut self, event: &ControllerJoyStickEvent) {
-    println!("Handling controller joystick event: {:#?}", event);
   }
 }
 
