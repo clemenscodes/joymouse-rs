@@ -1,12 +1,13 @@
 use evdev::{KeyCode, RelativeAxisCode};
 
-use crate::controller::{button::ButtonError, joystick::AxisError};
+use crate::controller::{button::ButtonError, joystick::AxisError, state::StateError};
 
 #[derive(Debug)]
 pub enum JoyStickError {
   Axis(AxisError),
   UnsupportedAxisCode(RelativeAxisCode),
   UnsupportedKeyCode(KeyCode),
+  InvalidState(StateError),
   Button(ButtonError),
 }
 
@@ -16,11 +17,35 @@ impl From<AxisError> for JoyStickError {
   }
 }
 
+impl From<RelativeAxisCode> for JoyStickError {
+  fn from(v: RelativeAxisCode) -> Self {
+    Self::UnsupportedAxisCode(v)
+  }
+}
+
+impl From<KeyCode> for JoyStickError {
+  fn from(v: KeyCode) -> Self {
+    Self::UnsupportedKeyCode(v)
+  }
+}
+
+impl From<StateError> for JoyStickError {
+  fn from(value: StateError) -> Self {
+    Self::InvalidState(value)
+  }
+}
+
+impl From<ButtonError> for JoyStickError {
+  fn from(value: ButtonError) -> Self {
+    Self::Button(value)
+  }
+}
+
 impl std::fmt::Display for JoyStickError {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     match self {
       JoyStickError::Axis(axis_error) => {
-        writeln!(f, "Joystick axis error: {}", axis_error)
+        writeln!(f, "{}", axis_error)
       }
       JoyStickError::UnsupportedAxisCode(relative_axis_code) => {
         writeln!(f, "Joystick unsupported axis code: {:#?}", relative_axis_code)
@@ -29,7 +54,10 @@ impl std::fmt::Display for JoyStickError {
         writeln!(f, "Joystick unsupported key code: {:#?}", key_code)
       }
       JoyStickError::Button(button_error) => {
-        writeln!(f, "Joystick button error: {}", button_error)
+        writeln!(f, "{}", button_error)
+      }
+      JoyStickError::InvalidState(state) => {
+        writeln!(f, "{}", state)
       }
     }
   }

@@ -1,8 +1,9 @@
 use evdev::{AbsoluteAxisCode, KeyEvent, RelativeAxisEvent};
 
 use crate::controller::{
-  button::{ButtonError, ControllerButton},
+  button::ControllerButton,
   joystick::{JOYSTICK_KEYS, JoyStick, JoyStickError, axis::JoyStickAxis},
+  state::State,
 };
 
 #[derive(Debug)]
@@ -10,14 +11,16 @@ pub struct ControllerJoyStickEvent {
   joystick: JoyStick,
   axis: JoyStickAxis,
   value: i32,
+  state: State,
 }
 
 impl ControllerJoyStickEvent {
-  pub fn new(joystick: JoyStick, axis: JoyStickAxis, value: i32) -> Self {
+  pub fn new(joystick: JoyStick, axis: JoyStickAxis, value: i32, state: State) -> Self {
     Self {
       joystick,
       axis,
       value,
+      state,
     }
   }
 
@@ -32,11 +35,9 @@ impl ControllerJoyStickEvent {
   pub fn value(&self) -> i32 {
     self.value
   }
-}
 
-impl From<ButtonError> for JoyStickError {
-  fn from(value: ButtonError) -> Self {
-    Self::Button(value)
+  pub fn state(&self) -> &State {
+    &self.state
   }
 }
 
@@ -48,6 +49,7 @@ impl TryFrom<KeyEvent> for ControllerJoyStickEvent {
     let joystick = JoyStick::Left;
     let axis = JoyStickAxis::try_from((*JOYSTICK_KEYS, code))?;
     let button = ControllerButton::try_from(code)?;
+    let state = State::try_from(value.value())?;
     let value = match axis {
       JoyStickAxis::X => match button {
         ControllerButton::Starboard => 1,
@@ -60,7 +62,7 @@ impl TryFrom<KeyEvent> for ControllerJoyStickEvent {
         _ => return Err(JoyStickError::UnsupportedKeyCode(code)),
       },
     };
-    Ok(Self::new(joystick, axis, value))
+    Ok(Self::new(joystick, axis, value, state))
   }
 }
 
@@ -71,7 +73,8 @@ impl TryFrom<RelativeAxisEvent> for ControllerJoyStickEvent {
     let (code, value) = value.destructure();
     let joystick = JoyStick::try_from(code)?;
     let axis = JoyStickAxis::try_from(code)?;
-    Ok(Self::new(joystick, axis, value))
+    let state = State::Pressed;
+    Ok(Self::new(joystick, axis, value, state))
   }
 }
 

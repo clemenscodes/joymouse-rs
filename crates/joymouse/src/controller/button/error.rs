@@ -1,12 +1,30 @@
 use evdev::KeyCode;
 
-use crate::controller::button::ControllerButton;
+use crate::controller::{button::ControllerButton, state::StateError};
 
 #[derive(Debug)]
 pub enum ButtonError {
   UnsupportedKeyCode(KeyCode),
-  InvalidState(i32),
+  InvalidState(StateError),
   InvalidButton(ControllerButton),
+}
+
+impl From<KeyCode> for ButtonError {
+  fn from(v: KeyCode) -> Self {
+    Self::UnsupportedKeyCode(v)
+  }
+}
+
+impl From<StateError> for ButtonError {
+  fn from(value: StateError) -> Self {
+    Self::InvalidState(value)
+  }
+}
+
+impl From<ControllerButton> for ButtonError {
+  fn from(v: ControllerButton) -> Self {
+    Self::InvalidButton(v)
+  }
 }
 
 impl std::fmt::Display for ButtonError {
@@ -16,7 +34,7 @@ impl std::fmt::Display for ButtonError {
         writeln!(f, "Unsupported key: {:#?}", key_code)
       }
       ButtonError::InvalidState(state) => {
-        writeln!(f, "Invalid state: {}", state)
+        writeln!(f, "{}", state)
       }
       ButtonError::InvalidButton(controller_button) => {
         writeln!(f, "Invalid controller button: {:#?}", controller_button)

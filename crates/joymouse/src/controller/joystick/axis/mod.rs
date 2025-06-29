@@ -1,11 +1,11 @@
 mod error;
 
-use evdev::{KeyCode, KeyEvent, RelativeAxisCode, RelativeAxisEvent};
-
 use crate::controller::{
   button::ControllerButton,
-  joystick::{JOYSTICK_KEYS, JoyStickKeys},
+  joystick::{JOYSTICK_KEYS, keys::JoyStickKeys},
 };
+
+use evdev::{KeyCode, KeyEvent, RelativeAxisCode, RelativeAxisEvent};
 
 #[derive(Debug)]
 pub enum JoyStickAxis {
@@ -20,7 +20,7 @@ impl TryFrom<(JoyStickKeys, KeyCode)> for JoyStickAxis {
     if !keys.code_is_joystick_key(code) {
       return Err(AxisError::Unknown);
     }
-    let axis = if keys.forward == code || keys.backward == code {
+    let axis = if keys.forward() == code || keys.backward() == code {
       Self::Y
     } else {
       Self::X

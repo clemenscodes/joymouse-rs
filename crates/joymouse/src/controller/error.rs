@@ -12,21 +12,27 @@ pub enum ControllerError {
   UnsupportedEvent(EventSummary),
 }
 
-impl From<ButtonError> for ControllerError {
-  fn from(value: ButtonError) -> Self {
-    Self::Button(value)
-  }
-}
-
 impl From<AxisError> for ControllerError {
   fn from(value: AxisError) -> Self {
     Self::from(JoyStickError::from(value))
   }
 }
 
+impl From<ButtonError> for ControllerError {
+  fn from(value: ButtonError) -> Self {
+    Self::Button(value)
+  }
+}
+
 impl From<JoyStickError> for ControllerError {
   fn from(v: JoyStickError) -> Self {
     Self::JoyStick(v)
+  }
+}
+
+impl From<EventSummary> for ControllerError {
+  fn from(v: EventSummary) -> Self {
+    Self::UnsupportedEvent(v)
   }
 }
 

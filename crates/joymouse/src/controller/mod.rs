@@ -3,6 +3,7 @@ mod error;
 mod event;
 mod joystick;
 mod settings;
+mod state;
 
 use std::sync::{Arc, Mutex, mpsc};
 
