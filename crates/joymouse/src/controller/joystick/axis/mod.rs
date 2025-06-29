@@ -1,21 +1,11 @@
+mod error;
+
 use evdev::{KeyCode, KeyEvent, RelativeAxisCode, RelativeAxisEvent};
 
 use crate::controller::{
-  button::{ButtonError, ControllerButton},
+  button::ControllerButton,
   joystick::{JOYSTICK_KEYS, JoyStickKeys},
 };
-
-#[derive(Debug)]
-pub enum AxisError {
-  Button(ButtonError),
-  Unknown,
-}
-
-impl From<ButtonError> for AxisError {
-  fn from(value: ButtonError) -> Self {
-    Self::Button(value)
-  }
-}
 
 #[derive(Debug)]
 pub enum JoyStickAxis {
@@ -89,3 +79,5 @@ impl TryFrom<KeyEvent> for JoyStickAxis {
     Self::try_from(value.code())
   }
 }
+
+pub use error::AxisError;

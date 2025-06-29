@@ -77,8 +77,6 @@
         libevdev
         udev
         dbus
-        sdl3.lib
-        sdl3.dev
       ];
       nativeBuildInputs = with pkgs; [pkg-config];
     };
@@ -148,8 +146,6 @@
               libevdev
               udev
               dbus
-              sdl3.lib
-              sdl3.dev
             ];
             nativeBuildInputs = with pkgs; [
               pkg-config

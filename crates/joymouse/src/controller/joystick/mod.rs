@@ -1,11 +1,9 @@
 mod axis;
+mod error;
 mod event;
 mod state;
 
-use crate::controller::{
-  Controller,
-  button::{ButtonError, ControllerButton, KEYBOARD_BUTTON_MAP},
-};
+use crate::controller::{Controller, button::ControllerButton, settings::KEYBOARD_BUTTON_MAP};
 
 use std::sync::LazyLock;
 
@@ -38,21 +36,7 @@ impl JoyStickKeys {
   }
 }
 
-#[derive(Debug)]
-pub enum JoyStickError {
-  Axis(AxisError),
-  UnsupportedAxisCode(RelativeAxisCode),
-  UnsupportedKeyCode(KeyCode),
-  Button(ButtonError),
-}
-
-impl From<AxisError> for JoyStickError {
-  fn from(value: AxisError) -> Self {
-    Self::Axis(value)
-  }
-}
-
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum JoyStick {
   Left,
   Right,
@@ -99,14 +83,14 @@ impl TryFrom<KeyEvent> for JoyStick {
 }
 
 impl Controller {
-  pub fn handle_joystick_event(&mut self, event: ControllerJoyStickEvent) {
-    println!("Handling controller joystick event: {:#?}", event);
-
+  pub fn handle_joystick_event(&mut self, event: ControllerJoyStickEvent, original: InputEvent) {
     let code = AbsoluteAxisCode::from(&event);
 
     let delta = event.value();
 
-    let value = match event.joystick() {
+    let joystick = event.joystick();
+
+    let value = match joystick {
       JoyStick::Left => match event.axis() {
         axis::JoyStickAxis::X => self.left_stick.x(-delta),
         axis::JoyStickAxis::Y => self.left_stick.y(-delta),
@@ -120,9 +104,14 @@ impl Controller {
     let virtual_event = InputEvent::new(EventType::ABSOLUTE.0, code.0, value);
     let events = vec![virtual_event];
     self.virtual_device.emit(&events).unwrap();
+
+    if *joystick == JoyStick::Right {
+      self.mouse_mut().emit(original);
+    }
   }
 }
 
 pub use axis::AxisError;
+pub use error::JoyStickError;
 pub use event::ControllerJoyStickEvent;
 pub use state::JoyStickState;

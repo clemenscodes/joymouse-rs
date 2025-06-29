@@ -9,4 +9,3 @@ authors = ["Clemens Horn <me@clemenshorn.com>"]
 evdev = "0.13.1"
 udev = "0.9.3"
 epoll = "4.3.3"
-sdl3 = "0.14.33"

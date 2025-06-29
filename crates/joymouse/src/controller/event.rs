@@ -1,58 +1,26 @@
 use evdev::{EventSummary, KeyEvent, RelativeAxisEvent};
 
 use crate::controller::{
-  button::{ButtonError, ControllerButtonEvent},
-  joystick::{AxisError, ControllerJoyStickEvent, JOYSTICK_KEYS, JoyStickError},
+  button::ControllerButtonEvent,
+  error::ControllerError,
+  joystick::{ControllerJoyStickEvent, JOYSTICK_KEYS},
 };
 
 #[derive(Debug)]
-pub enum ControllerError {
-  Button(ButtonError),
-  JoyStick(JoyStickError),
-  UnsupportedEvent(EventSummary),
-}
-
-impl From<ButtonError> for ControllerError {
-  fn from(value: ButtonError) -> Self {
-    Self::Button(value)
-  }
-}
-
-impl From<AxisError> for ControllerError {
-  fn from(value: AxisError) -> Self {
-    Self::from(JoyStickError::from(value))
-  }
-}
-
-impl From<JoyStickError> for ControllerError {
-  fn from(v: JoyStickError) -> Self {
-    Self::JoyStick(v)
-  }
-}
-
-#[derive(Debug)]
 pub enum ControllerEvent {
-  Button {
-    event: ControllerButtonEvent,
-  },
-  JoyStick {
-    event: ControllerJoyStickEvent,
-  },
+  Button(ControllerButtonEvent),
+  JoyStick(ControllerJoyStickEvent),
 }
 
 impl From<ControllerButtonEvent> for ControllerEvent {
   fn from(event: ControllerButtonEvent) -> Self {
-    Self::Button {
-      event,
-    }
+    Self::Button(event)
   }
 }
 
 impl From<ControllerJoyStickEvent> for ControllerEvent {
   fn from(event: ControllerJoyStickEvent) -> Self {
-    Self::JoyStick {
-      event,
-    }
+    Self::JoyStick(event)
   }
 }
 
