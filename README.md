@@ -22,7 +22,7 @@ like [RPCS3](https://rpcs3.net/), especially in FPS or camera-based games.
 
 ## 📸 Demo (Coming Soon)
 
-> GIF of mouse input being translated to analog stick movement in an emulator window.
+> ![Demo GIF](./assets/demo.gif)
 
 ---
 
