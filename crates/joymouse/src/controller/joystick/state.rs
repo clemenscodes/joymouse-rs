@@ -20,6 +20,9 @@ impl JoyStickState {
 
   pub fn tilt(&mut self, vector: Vector) -> i32 {
     let sensitivity = SETTINGS.sensitivity();
+
+    println!("Current stick: {:#?}, vector: {:#?}", self, vector);
+
     self.x += vector.dx() * sensitivity;
     self.y += vector.dy() * sensitivity;
 
@@ -82,7 +85,15 @@ impl JoyStickState {
     self.right = right;
   }
 
-  pub fn direction(&self) -> Option<&Direction> {
-    self.direction.as_ref()
+  pub fn direction(&self) -> Option<Direction> {
+    self.direction
   }
+
+pub fn x(&self) -> i32 {
+        self.x
+    }
+
+pub fn y(&self) -> i32 {
+        self.y
+    }
 }

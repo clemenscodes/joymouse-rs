@@ -20,11 +20,23 @@ impl Controller {
       self.mouse_mut().emit(original);
     }
 
-    let vector = Self::vector(axis, polarity, joystick);
-    let position = self.position(joystick, vector);
-    let virtual_event = InputEvent::new(EventType::ABSOLUTE.0, code.0, position);
-    let events = vec![virtual_event];
-    self.virtual_device.emit(&events).unwrap();
+    let direction = self.left_stick.lock().unwrap().direction();
+    let vector = Vector::from((axis, polarity, joystick, direction));
+
+    if *joystick == JoyStick::Right {
+      let position = self.right_stick.lock().unwrap().tilt(vector);
+      let virtual_event = InputEvent::new(EventType::ABSOLUTE.0, code.0, position);
+      let events = vec![virtual_event];
+      self.virtual_device.emit(&events).unwrap();
+    } else {
+      self.left_stick.lock().unwrap().tilt(vector);
+      let stick = self.left_stick.lock().unwrap();
+      let events = vec![
+        InputEvent::new(EventType::ABSOLUTE.0, AbsoluteAxisCode::ABS_X.0, stick.x()),
+        InputEvent::new(EventType::ABSOLUTE.0, AbsoluteAxisCode::ABS_Y.0, stick.y()),
+      ];
+      self.virtual_device.emit(&events).unwrap();
+    }
   }
 
   fn update_left_stick_direction(&self, axis: &JoyStickAxis, polarity: Polarity, state: &State) {
@@ -42,29 +54,5 @@ impl Controller {
     }
 
     stick.update_direction();
-  }
-
-  fn vector(axis: &JoyStickAxis, polarity: Polarity, joystick: &JoyStick) -> Vector {
-    let delta = i32::from(polarity);
-    match axis {
-      JoyStickAxis::X => Vector::new(delta, 0),
-      JoyStickAxis::Y => match joystick {
-        JoyStick::Left => Vector::new(0, -delta),
-        JoyStick::Right => Vector::new(0, delta),
-      },
-    }
-  }
-
-  fn position(&mut self, joystick: &JoyStick, vector: Vector) -> i32 {
-    match joystick {
-      JoyStick::Left => {
-        let stick = self.left_stick.clone();
-        stick.lock().unwrap().tilt(vector)
-      }
-      JoyStick::Right => {
-        let stick = self.right_stick.clone();
-        stick.lock().unwrap().tilt(vector)
-      }
-    }
   }
 }

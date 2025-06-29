@@ -7,5 +7,4 @@ authors = ["Clemens Horn <me@clemenshorn.com>"]
 
 [dependencies]
 evdev = "0.13.1"
-udev = "0.9.3"
 epoll = "4.3.3"
