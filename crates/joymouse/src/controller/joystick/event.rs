@@ -2,7 +2,7 @@ use evdev::{AbsoluteAxisCode, KeyEvent, RelativeAxisEvent};
 
 use crate::controller::{
   button::ControllerButton,
-  joystick::{JOYSTICK_KEYS, JoyStick, JoyStickError, axis::JoyStickAxis},
+  joystick::{JOYSTICK_KEYS, JoyStick, JoyStickError, axis::JoyStickAxis, polarity::Polarity},
   state::State,
 };
 
@@ -10,16 +10,16 @@ use crate::controller::{
 pub struct ControllerJoyStickEvent {
   joystick: JoyStick,
   axis: JoyStickAxis,
-  value: i32,
+  polarity: Polarity,
   state: State,
 }
 
 impl ControllerJoyStickEvent {
-  pub fn new(joystick: JoyStick, axis: JoyStickAxis, value: i32, state: State) -> Self {
+  pub fn new(joystick: JoyStick, axis: JoyStickAxis, polarity: Polarity, state: State) -> Self {
     Self {
       joystick,
       axis,
-      value,
+      polarity,
       state,
     }
   }
@@ -32,8 +32,8 @@ impl ControllerJoyStickEvent {
     &self.axis
   }
 
-  pub fn value(&self) -> i32 {
-    self.value
+  pub fn polarity(&self) -> Polarity {
+    self.polarity
   }
 
   pub fn state(&self) -> &State {
@@ -50,19 +50,8 @@ impl TryFrom<KeyEvent> for ControllerJoyStickEvent {
     let axis = JoyStickAxis::try_from((*JOYSTICK_KEYS, code))?;
     let button = ControllerButton::try_from(code)?;
     let state = State::try_from(value.value())?;
-    let value = match axis {
-      JoyStickAxis::X => match button {
-        ControllerButton::Starboard => 1,
-        ControllerButton::Port => -1,
-        _ => return Err(JoyStickError::UnsupportedKeyCode(code)),
-      },
-      JoyStickAxis::Y => match button {
-        ControllerButton::Forward => 1,
-        ControllerButton::Backward => -1,
-        _ => return Err(JoyStickError::UnsupportedKeyCode(code)),
-      },
-    };
-    Ok(Self::new(joystick, axis, value, state))
+    let polarity = Polarity::try_from((&axis, &button, code))?;
+    Ok(Self::new(joystick, axis, polarity, state))
   }
 }
 
@@ -73,8 +62,9 @@ impl TryFrom<RelativeAxisEvent> for ControllerJoyStickEvent {
     let (code, value) = value.destructure();
     let joystick = JoyStick::try_from(code)?;
     let axis = JoyStickAxis::try_from(code)?;
+    let polarity = Polarity::try_from(value)?;
     let state = State::Pressed;
-    Ok(Self::new(joystick, axis, value, state))
+    Ok(Self::new(joystick, axis, polarity, state))
   }
 }
 

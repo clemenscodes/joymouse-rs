@@ -1,6 +1,10 @@
 use evdev::{KeyCode, RelativeAxisCode};
 
-use crate::controller::{button::ButtonError, joystick::AxisError, state::StateError};
+use crate::controller::{
+  button::ButtonError,
+  joystick::{AxisError, polarity::PolarityError},
+  state::StateError,
+};
 
 #[derive(Debug)]
 pub enum JoyStickError {
@@ -8,7 +12,14 @@ pub enum JoyStickError {
   UnsupportedAxisCode(RelativeAxisCode),
   UnsupportedKeyCode(KeyCode),
   InvalidState(StateError),
+  InvalidPolarity(PolarityError),
   Button(ButtonError),
+}
+
+impl From<PolarityError> for JoyStickError {
+  fn from(v: PolarityError) -> Self {
+    Self::InvalidPolarity(v)
+  }
 }
 
 impl From<AxisError> for JoyStickError {
@@ -58,6 +69,9 @@ impl std::fmt::Display for JoyStickError {
       }
       JoyStickError::InvalidState(state) => {
         writeln!(f, "{}", state)
+      }
+      JoyStickError::InvalidPolarity(polarity_error) => {
+        writeln!(f, "{}", polarity_error)
       }
     }
   }

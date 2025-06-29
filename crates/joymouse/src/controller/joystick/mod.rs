@@ -1,9 +1,12 @@
 mod axis;
 mod control;
+mod direction;
 mod error;
 mod event;
 mod keys;
+mod polarity;
 mod state;
+mod vector;
 
 use evdev::{KeyCode, KeyEvent, RelativeAxisCode, RelativeAxisEvent};
 

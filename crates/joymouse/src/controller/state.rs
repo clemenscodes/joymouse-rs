@@ -1,8 +1,14 @@
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 pub enum State {
   Pressed,
   Released,
   Held,
+}
+
+impl Default for State {
+  fn default() -> Self {
+    Self::Released
+  }
 }
 
 impl State {
