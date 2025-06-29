@@ -92,7 +92,7 @@ impl Controller {
 
     let value = match joystick {
       JoyStick::Left => match event.axis() {
-        axis::JoyStickAxis::X => self.left_stick.x(-delta),
+        axis::JoyStickAxis::X => self.left_stick.x(delta),
         axis::JoyStickAxis::Y => self.left_stick.y(-delta),
       },
       JoyStick::Right => match event.axis() {

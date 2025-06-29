@@ -34,7 +34,6 @@ impl Mouse {
   }
 
   pub fn emit(&mut self, event: InputEvent) {
-    println!("Emitting mouse event: {:#?}", event);
     let events = vec![event];
     self.virtual_device.emit(&events).unwrap();
   }
