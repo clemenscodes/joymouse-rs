@@ -37,9 +37,9 @@ impl JoyStickState {
   pub const MAX: i32 = 32767;
 
   pub fn tilt(&mut self, vector: Vector) -> i32 {
-    let sensitivity = SETTINGS.sensitivity();
+    self.last_event = Instant::now();
 
-    println!("Current stick: {:#?}, vector: {:#?}", self, vector);
+    let sensitivity = SETTINGS.sensitivity();
 
     self.x += vector.dx() * sensitivity;
     self.y += vector.dy() * sensitivity;
@@ -117,22 +117,6 @@ impl JoyStickState {
 
   pub fn y(&self) -> i32 {
     self.y
-  }
-
-  pub fn up(&self) -> State {
-    self.up
-  }
-
-  pub fn down(&self) -> State {
-    self.down
-  }
-
-  pub fn left(&self) -> State {
-    self.left
-  }
-
-  pub fn right(&self) -> State {
-    self.right
   }
 
   pub fn last_event(&self) -> Instant {

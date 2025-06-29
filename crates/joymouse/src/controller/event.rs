@@ -44,9 +44,7 @@ impl TryFrom<RelativeAxisEvent> for ControllerEvent {
   type Error = ControllerError;
 
   fn try_from(value: RelativeAxisEvent) -> Result<Self, Self::Error> {
-    println!("Trying to create controller event from relative axis event: {:#?}", value);
     let event = Self::from(ControllerJoyStickEvent::try_from(value)?);
-    println!("Created controller event {:#?} from: {:#?}", event, value);
     Ok(event)
   }
 }

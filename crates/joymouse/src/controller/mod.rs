@@ -5,7 +5,7 @@ mod joystick;
 mod settings;
 mod state;
 
-use std::sync::{Arc, Mutex, mpsc};
+use std::sync::{Arc, Mutex};
 
 use crate::{controller::joystick::JoyStickState, mouse::Mouse};
 
@@ -19,8 +19,6 @@ pub struct Controller {
   virtual_device: VirtualDevice,
   left_stick: Arc<Mutex<JoyStickState>>,
   right_stick: Arc<Mutex<JoyStickState>>,
-  left_idle_cancel: Option<mpsc::Sender<()>>,
-  right_idle_cancel: Option<mpsc::Sender<()>>,
 }
 
 impl Controller {
@@ -81,8 +79,6 @@ impl Controller {
       virtual_device,
       left_stick: Arc::new(Mutex::new(JoyStickState::default())),
       right_stick: Arc::new(Mutex::new(JoyStickState::default())),
-      left_idle_cancel: None,
-      right_idle_cancel: None,
     })
   }
 

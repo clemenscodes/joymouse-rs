@@ -36,7 +36,7 @@ fn main() {
     let controller = Arc::clone(&controller);
     std::thread::spawn(move || {
       let tick_rate = std::time::Duration::from_millis(16);
-      const SPEED_PER_TICK: i32 = 10;
+      const SPEED_PER_TICK: i32 = 10000;
 
       loop {
         std::thread::sleep(tick_rate);
@@ -72,7 +72,7 @@ fn main() {
     let controller = Arc::clone(&controller);
     std::thread::spawn(move || {
       let tick_rate = std::time::Duration::from_millis(16);
-      let timeout = std::time::Duration::from_millis(600);
+      let timeout = std::time::Duration::from_millis(100);
 
       loop {
         std::thread::sleep(tick_rate);
@@ -82,16 +82,19 @@ fn main() {
 
         let right_stick = ctrl.right_stick_mut().lock().unwrap();
         let last_mouse_event = right_stick.last_event();
-        let is_idle = now.duration_since(last_mouse_event) > timeout;
+        let elapsed = now.duration_since(last_mouse_event);
+        let is_idle = elapsed > timeout;
 
         if is_idle && (right_stick.x() != 0 || right_stick.y() != 0) {
           drop(right_stick);
           ctrl.right_stick_mut().lock().unwrap().recenter();
-          let events = vec![
-            InputEvent::new(EventType::ABSOLUTE.0, AbsoluteAxisCode::ABS_X.0, 0),
-            InputEvent::new(EventType::ABSOLUTE.0, AbsoluteAxisCode::ABS_Y.0, 0),
-          ];
-          ctrl.virtual_device_mut().emit(&events).unwrap();
+          ctrl
+            .virtual_device_mut()
+            .emit(&[
+              InputEvent::new(EventType::ABSOLUTE.0, AbsoluteAxisCode::ABS_RX.0, 0),
+              InputEvent::new(EventType::ABSOLUTE.0, AbsoluteAxisCode::ABS_RY.0, 0),
+            ])
+            .unwrap();
         }
       }
     });
