@@ -1,50 +1,35 @@
 use crate::controller::settings::SETTINGS;
 
-#[derive(Default, Debug)]
+#[derive(Debug, Default)]
 pub struct JoyStickState {
-  x: i32,
-  y: i32,
+  pub x: i32,
+  pub y: i32,
 }
 
 impl JoyStickState {
   pub const MAX: i32 = 32767;
-  pub const MIN: i32 = -32768;
 
-  pub fn x(&mut self, x: i32) -> i32 {
-    let sensitivy = SETTINGS.sensitivity();
+  pub fn tilt(&mut self, dx: i32, dy: i32) -> i32 {
+    let sensitivity = SETTINGS.sensitivity();
+    self.x += dx * sensitivity;
+    self.y += dy * sensitivity;
 
-    let delta = x * sensitivy;
-
-    if self.x + delta >= Self::MAX {
-      self.x = Self::MAX;
-      return self.x;
+    let magnitude = ((self.x as f64).powi(2) + (self.y as f64).powi(2)).sqrt();
+    if magnitude > Self::MAX as f64 {
+      let scale = Self::MAX as f64 / magnitude;
+      self.x = (self.x as f64 * scale).round() as i32;
+      self.y = (self.y as f64 * scale).round() as i32;
     }
 
-    if self.x + delta <= Self::MIN {
-      self.x = Self::MIN;
-      return self.x;
+    if dx != 0 {
+      self.x
+    } else {
+      self.y
     }
-
-    self.x += delta;
-    self.x
   }
 
-  pub fn y(&mut self, y: i32) -> i32 {
-    let sensitivy = SETTINGS.sensitivity();
-
-    let delta = y * sensitivy;
-
-    if self.y + delta >= Self::MAX {
-      self.y = Self::MAX;
-      return self.y;
-    }
-
-    if self.y + delta <= Self::MIN {
-      self.y = Self::MIN;
-      return self.y;
-    }
-
-    self.y += delta;
-    self.y
+  pub fn recenter(&mut self) {
+    self.x = 0;
+    self.y = 0;
   }
 }

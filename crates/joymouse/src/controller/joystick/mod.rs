@@ -3,7 +3,9 @@ mod error;
 mod event;
 mod state;
 
-use crate::controller::{Controller, button::ControllerButton, settings::KEYBOARD_BUTTON_MAP};
+use crate::controller::{
+  Controller, button::ControllerButton, joystick::axis::JoyStickAxis, settings::KEYBOARD_BUTTON_MAP,
+};
 
 use std::sync::LazyLock;
 
@@ -90,15 +92,23 @@ impl Controller {
 
     let joystick = event.joystick();
 
-    let value = match joystick {
-      JoyStick::Left => match event.axis() {
-        axis::JoyStickAxis::X => self.left_stick.x(delta),
-        axis::JoyStickAxis::Y => self.left_stick.y(-delta),
+    let (dx, dy) = match event.axis() {
+      JoyStickAxis::X => (delta, 0),
+      JoyStickAxis::Y => match event.joystick() {
+        JoyStick::Left => (0, -delta),
+        JoyStick::Right => (0, delta),
       },
-      JoyStick::Right => match event.axis() {
-        axis::JoyStickAxis::X => self.right_stick.x(delta),
-        axis::JoyStickAxis::Y => self.right_stick.y(delta),
-      },
+    };
+
+    let value = match event.joystick() {
+      JoyStick::Left => {
+        let stick = self.left_stick.clone();
+        stick.lock().unwrap().tilt(dx, dy)
+      }
+      JoyStick::Right => {
+        let stick = self.right_stick.clone();
+        stick.lock().unwrap().tilt(dx, dy)
+      }
     };
 
     let virtual_event = InputEvent::new(EventType::ABSOLUTE.0, code.0, value);

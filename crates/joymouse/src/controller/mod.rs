@@ -4,6 +4,8 @@ mod event;
 mod joystick;
 mod settings;
 
+use std::sync::{Arc, Mutex, mpsc};
+
 use crate::{controller::joystick::JoyStickState, mouse::Mouse};
 
 use evdev::{
@@ -14,8 +16,10 @@ use evdev::{
 pub struct Controller {
   mouse: Mouse,
   virtual_device: VirtualDevice,
-  left_stick: JoyStickState,
-  right_stick: JoyStickState,
+  left_stick: Arc<Mutex<JoyStickState>>,
+  right_stick: Arc<Mutex<JoyStickState>>,
+  left_idle_cancel: Option<mpsc::Sender<()>>,
+  right_idle_cancel: Option<mpsc::Sender<()>>,
 }
 
 impl Controller {
@@ -74,8 +78,10 @@ impl Controller {
     Ok(Self {
       mouse,
       virtual_device,
-      left_stick: JoyStickState::default(),
-      right_stick: JoyStickState::default(),
+      left_stick: Arc::new(Mutex::new(JoyStickState::default())),
+      right_stick: Arc::new(Mutex::new(JoyStickState::default())),
+      left_idle_cancel: None,
+      right_idle_cancel: None,
     })
   }
 

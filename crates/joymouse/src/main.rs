@@ -7,7 +7,8 @@ use crate::{
 };
 
 use std::{
-  os::fd::AsRawFd,
+  collections::HashMap,
+  os::fd::{AsRawFd, RawFd},
   sync::{Arc, Mutex},
 };
 
@@ -151,19 +152,30 @@ fn extract_input_number(phys: Option<&str>) -> Option<u32> {
     .and_then(|n| n.parse::<u32>().ok())
 }
 
+fn create_epoll_fd() -> RawFd {
+  match epoll::create(false) {
+    Ok(fd) => fd,
+    Err(_) => {
+      eprintln!("Failed to create epoll file descriptor");
+      std::process::exit(1);
+    }
+  }
+}
+
 fn process_input_events(mouse: Arc<Mutex<Device>>, keyboard: Arc<Mutex<Device>>, controller: Arc<Mutex<Controller>>) {
-  let mouse_fd = mouse.lock().unwrap().as_raw_fd();
-  let keyboard_fd = keyboard.lock().unwrap().as_raw_fd();
+  let epoll_fd = create_epoll_fd();
 
-  let epoll_fd = epoll::create(false).expect("Failed to create epoll fd");
+  let devices = [mouse, keyboard];
+  let mut fd_map = HashMap::new();
 
-  let event_mouse = Event::new(Events::EPOLLIN, mouse_fd as u64);
-  let event_keyboard = Event::new(Events::EPOLLIN, keyboard_fd as u64);
+  for device in devices.iter() {
+    let fd = device.lock().unwrap().as_raw_fd();
+    let event = Event::new(Events::EPOLLIN, fd as u64);
+    epoll::ctl(epoll_fd, EPOLL_CTL_ADD, fd, event).unwrap();
+    fd_map.insert(fd, Arc::clone(device));
+  }
 
-  epoll::ctl(epoll_fd, EPOLL_CTL_ADD, mouse_fd, event_mouse).unwrap();
-  epoll::ctl(epoll_fd, EPOLL_CTL_ADD, keyboard_fd, event_keyboard).unwrap();
-
-  let mut events = vec![Event::new(Events::empty(), 0); 2];
+  let mut events = vec![Event::new(Events::empty(), 0); fd_map.len()];
 
   loop {
     let num_events = epoll::wait(epoll_fd, -1, &mut events).unwrap();
@@ -171,15 +183,7 @@ fn process_input_events(mouse: Arc<Mutex<Device>>, keyboard: Arc<Mutex<Device>>,
     for epoll_event in events.iter().take(num_events) {
       let fd = epoll_event.data as i32;
 
-      let device_opt = if fd == mouse_fd {
-        Some(mouse.clone())
-      } else if fd == keyboard_fd {
-        Some(keyboard.clone())
-      } else {
-        None
-      };
-
-      if let Some(device) = device_opt {
+      if let Some(device) = fd_map.get(&fd) {
         let mut device = device.lock().unwrap();
         for original in device.fetch_events().unwrap() {
           if let Ok(event) = ControllerEvent::try_from(original.destructure()) {
