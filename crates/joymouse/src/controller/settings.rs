@@ -18,7 +18,7 @@ impl ControllerSettings {
 impl Default for ControllerSettings {
   fn default() -> Self {
     Self {
-      sensitivity: 100,
+      sensitivity: 500,
     }
   }
 }

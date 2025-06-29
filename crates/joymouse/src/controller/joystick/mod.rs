@@ -61,3 +61,4 @@ pub use error::JoyStickError;
 pub use event::ControllerJoyStickEvent;
 pub use keys::JOYSTICK_KEYS;
 pub use state::JoyStickState;
+pub use vector::Vector;

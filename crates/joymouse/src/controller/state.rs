@@ -1,4 +1,4 @@
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum State {
   Pressed,
   Released,
@@ -18,6 +18,30 @@ impl State {
       State::Pressed => 1,
       State::Held => 2,
     }
+  }
+
+  /// Returns `true` if the state is [`Released`].
+  ///
+  /// [`Released`]: State::Released
+  #[must_use]
+  pub fn is_released(&self) -> bool {
+    matches!(self, Self::Released)
+  }
+
+  /// Returns `true` if the state is [`Pressed`].
+  ///
+  /// [`Pressed`]: State::Pressed
+  #[must_use]
+  pub fn is_pressed(&self) -> bool {
+    matches!(self, Self::Pressed)
+  }
+
+  /// Returns `true` if the state is [`Held`].
+  ///
+  /// [`Held`]: State::Held
+  #[must_use]
+  pub fn is_held(&self) -> bool {
+    matches!(self, Self::Held)
   }
 }
 

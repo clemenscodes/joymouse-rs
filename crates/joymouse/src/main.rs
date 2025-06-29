@@ -2,7 +2,7 @@ mod controller;
 mod mouse;
 
 use crate::{
-  controller::{Controller, ControllerEvent},
+  controller::{Controller, ControllerEvent, Vector},
   mouse::Mouse,
 };
 
@@ -13,7 +13,7 @@ use std::{
 };
 
 use epoll::{ControlOptions::EPOLL_CTL_ADD, Event, Events};
-use evdev::{Device, EventType, KeyCode, MiscCode, RelativeAxisCode};
+use evdev::{AbsoluteAxisCode, Device, EventType, InputEvent, KeyCode, MiscCode, RelativeAxisCode};
 
 fn main() {
   let mut mice = find_mice();
@@ -31,6 +31,71 @@ fn main() {
 
   let virtual_mouse = Mouse::try_create().unwrap();
   let controller = Arc::new(Mutex::new(Controller::try_create(virtual_mouse).unwrap()));
+
+  {
+    let controller = Arc::clone(&controller);
+    std::thread::spawn(move || {
+      let tick_rate = std::time::Duration::from_millis(16);
+      const SPEED_PER_TICK: i32 = 10;
+
+      loop {
+        std::thread::sleep(tick_rate);
+
+        let mut controller = controller.lock().unwrap();
+
+        let maybe_direction = {
+          let stick = controller.left_stick_mut().lock().unwrap();
+          stick.direction()
+        };
+
+        if let Some(direction) = maybe_direction {
+          let vector = Vector::from(direction) * SPEED_PER_TICK;
+
+          let (x, y) = {
+            let mut stick = controller.left_stick_mut().lock().unwrap();
+            stick.tilt(vector);
+            (stick.x(), stick.y())
+          };
+
+          let events = vec![
+            InputEvent::new(EventType::ABSOLUTE.0, AbsoluteAxisCode::ABS_X.0, x),
+            InputEvent::new(EventType::ABSOLUTE.0, AbsoluteAxisCode::ABS_Y.0, -y),
+          ];
+
+          controller.virtual_device_mut().emit(&events).unwrap();
+        }
+      }
+    });
+  }
+
+  {
+    let controller = Arc::clone(&controller);
+    std::thread::spawn(move || {
+      let tick_rate = std::time::Duration::from_millis(16);
+      let timeout = std::time::Duration::from_millis(600);
+
+      loop {
+        std::thread::sleep(tick_rate);
+
+        let mut ctrl = controller.lock().unwrap();
+        let now = std::time::Instant::now();
+
+        let right_stick = ctrl.right_stick_mut().lock().unwrap();
+        let last_mouse_event = right_stick.last_event();
+        let is_idle = now.duration_since(last_mouse_event) > timeout;
+
+        if is_idle && (right_stick.x() != 0 || right_stick.y() != 0) {
+          drop(right_stick);
+          ctrl.right_stick_mut().lock().unwrap().recenter();
+          let events = vec![
+            InputEvent::new(EventType::ABSOLUTE.0, AbsoluteAxisCode::ABS_X.0, 0),
+            InputEvent::new(EventType::ABSOLUTE.0, AbsoluteAxisCode::ABS_Y.0, 0),
+          ];
+          ctrl.virtual_device_mut().emit(&events).unwrap();
+        }
+      }
+    });
+  }
 
   mouse.lock().unwrap().grab().unwrap();
 

@@ -96,6 +96,19 @@ impl Controller {
   pub fn mouse_mut(&mut self) -> &mut Mouse {
     &mut self.mouse
   }
+
+  pub fn virtual_device_mut(&mut self) -> &mut VirtualDevice {
+    &mut self.virtual_device
+  }
+
+  pub fn left_stick_mut(&mut self) -> &mut Arc<Mutex<JoyStickState>> {
+    &mut self.left_stick
+  }
+
+  pub fn right_stick_mut(&mut self) -> &mut Arc<Mutex<JoyStickState>> {
+    &mut self.right_stick
+  }
 }
 
 pub use event::ControllerEvent;
+pub use joystick::Vector;

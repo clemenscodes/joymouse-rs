@@ -1,10 +1,12 @@
+use std::time::Instant;
+
 use crate::controller::{
   joystick::{direction::Direction, vector::Vector},
   settings::SETTINGS,
   state::State,
 };
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct JoyStickState {
   x: i32,
   y: i32,
@@ -13,6 +15,22 @@ pub struct JoyStickState {
   left: State,
   right: State,
   direction: Option<Direction>,
+  last_event: Instant,
+}
+
+impl Default for JoyStickState {
+  fn default() -> Self {
+    Self {
+      x: Default::default(),
+      y: Default::default(),
+      up: Default::default(),
+      down: Default::default(),
+      left: Default::default(),
+      right: Default::default(),
+      direction: Default::default(),
+      last_event: Instant::now(),
+    }
+  }
 }
 
 impl JoyStickState {
@@ -55,7 +73,10 @@ impl JoyStickState {
       (false, true, false, false) => Some(Direction::South),
       (false, false, true, false) => Some(Direction::West),
       (false, false, false, true) => Some(Direction::East),
-      _ => None,
+      _ => {
+        self.recenter();
+        None
+      }
     };
   }
 
@@ -66,7 +87,8 @@ impl JoyStickState {
     self.down = State::default();
     self.left = State::default();
     self.right = State::default();
-    self.direction = None
+    self.direction = None;
+    self.last_event = Instant::now();
   }
 
   pub fn set_up(&mut self, up: State) {
@@ -89,11 +111,31 @@ impl JoyStickState {
     self.direction
   }
 
-pub fn x(&self) -> i32 {
-        self.x
-    }
+  pub fn x(&self) -> i32 {
+    self.x
+  }
 
-pub fn y(&self) -> i32 {
-        self.y
-    }
+  pub fn y(&self) -> i32 {
+    self.y
+  }
+
+  pub fn up(&self) -> State {
+    self.up
+  }
+
+  pub fn down(&self) -> State {
+    self.down
+  }
+
+  pub fn left(&self) -> State {
+    self.left
+  }
+
+  pub fn right(&self) -> State {
+    self.right
+  }
+
+  pub fn last_event(&self) -> Instant {
+    self.last_event
+  }
 }
