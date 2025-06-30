@@ -1,8 +1,8 @@
+use crate::controller::button::ControllerButton;
+
 use std::{collections::HashMap, sync::LazyLock};
 
 use evdev::KeyCode;
-
-use crate::controller::button::ControllerButton;
 
 #[derive(Debug)]
 pub struct ControllerSettings {
@@ -22,6 +22,9 @@ impl Default for ControllerSettings {
     }
   }
 }
+
+pub const MAX_STICK_TILT: i32 = 32767;
+pub const MIN_STICK_TILT: i32 = -MAX_STICK_TILT;
 
 pub static SETTINGS: LazyLock<ControllerSettings> = LazyLock::new(ControllerSettings::default);
 

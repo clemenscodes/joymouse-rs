@@ -1,4 +1,7 @@
-use crate::controller::joystick::{JoyStick, axis::JoyStickAxis, direction::Direction, polarity::Polarity};
+use crate::controller::{
+  joystick::{JoyStick, axis::JoyStickAxis, direction::Direction, polarity::Polarity},
+  settings::{MAX_STICK_TILT, MIN_STICK_TILT},
+};
 
 #[derive(Default, Debug, Copy, Clone)]
 pub struct Vector {
@@ -9,16 +12,13 @@ pub struct Vector {
 impl Vector {
   pub fn new(dx: i32, dy: i32) -> Self {
     Self {
-      dx,
-      dy,
+      dx: dx.clamp(MIN_STICK_TILT, MAX_STICK_TILT),
+      dy: dy.clamp(MIN_STICK_TILT, MAX_STICK_TILT),
     }
   }
 
   pub fn flipped_y(&self) -> Self {
-    Self {
-      dx: self.dx,
-      dy: -self.dy,
-    }
+    Self::new(self.dx, -self.dy)
   }
 
   pub fn dx(&self) -> i32 {
@@ -27,6 +27,10 @@ impl Vector {
 
   pub fn dy(&self) -> i32 {
     self.dy
+  }
+
+  pub fn tuple(&self) -> (i32, i32) {
+    (self.dx(), self.dy())
   }
 }
 

@@ -56,7 +56,7 @@ impl TryFrom<KeyEvent> for JoyStick {
   }
 }
 
-pub use axis::AxisError;
+pub use axis::{JoyStickAxis,AxisError};
 pub use error::JoyStickError;
 pub use event::ControllerJoyStickEvent;
 pub use keys::JOYSTICK_KEYS;

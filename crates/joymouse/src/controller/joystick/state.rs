@@ -1,8 +1,8 @@
-use std::time::Instant;
+use std::time::{Duration, Instant};
 
 use crate::controller::{
   joystick::{direction::Direction, vector::Vector},
-  settings::SETTINGS,
+  settings::{MAX_STICK_TILT, SETTINGS},
   state::State,
 };
 
@@ -34,8 +34,6 @@ impl Default for JoyStickState {
 }
 
 impl JoyStickState {
-  pub const MAX: i32 = 32767;
-
   pub fn tilt(&mut self, vector: Vector) -> i32 {
     self.last_event = Instant::now();
 
@@ -45,8 +43,8 @@ impl JoyStickState {
     self.y += vector.dy() * sensitivity;
 
     let magnitude = ((self.x as f64).powi(2) + (self.y as f64).powi(2)).sqrt();
-    if magnitude > Self::MAX as f64 {
-      let scale = Self::MAX as f64 / magnitude;
+    if magnitude > MAX_STICK_TILT as f64 {
+      let scale = MAX_STICK_TILT as f64 / magnitude;
       self.x = (self.x as f64 * scale).round() as i32;
       self.y = (self.y as f64 * scale).round() as i32;
     }
@@ -121,5 +119,18 @@ impl JoyStickState {
 
   pub fn last_event(&self) -> Instant {
     self.last_event
+  }
+
+  pub fn is_idle(&self, now: Instant, timeout: Duration) -> bool {
+    let elapsed = now.duration_since(self.last_event());
+    elapsed > timeout && (self.x() != 0 || self.y() != 0)
+  }
+
+  pub fn handle_idle(&mut self, now: Instant, timeout: Duration) -> bool {
+    if self.is_idle(now, timeout) {
+      self.recenter();
+      return true;
+    }
+    false
   }
 }
