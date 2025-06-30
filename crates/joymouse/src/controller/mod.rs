@@ -5,16 +5,18 @@ mod joystick;
 mod settings;
 mod state;
 
+use crate::{
+  controller::{
+    joystick::{JoyStick, JoyStickAxis, JoyStickState},
+    settings::{LEFT_STICK_SENSITIVITY, TICKRATE},
+  },
+  mouse::Mouse,
+};
+
 use std::{
   collections::HashMap,
   os::fd::{AsRawFd, RawFd},
   sync::{Arc, Mutex},
-  time::{Duration, Instant},
-};
-
-use crate::{
-  controller::joystick::{JoyStick, JoyStickAxis, JoyStickState},
-  mouse::Mouse,
 };
 
 use epoll::{Event, Events};
@@ -94,109 +96,30 @@ impl Controller {
     })
   }
 
-  pub fn handle_event(&mut self, event: ControllerEvent, original: InputEvent) {
-    match event {
-      ControllerEvent::Button(event) => self.handle_button_event(event, original),
-      ControllerEvent::JoyStick(event) => self.handle_joystick_event(event, original),
-    }
+  pub fn init_mouse() -> Device {
+    let mut mice = Self::find_mice();
+    Self::find_mouse(&mut mice)
   }
 
-  pub fn mouse_mut(&mut self) -> &mut Mouse {
-    &mut self.mouse
+  pub fn init_keyboard() -> Device {
+    let mut candidates = Self::find_keyboards();
+    Self::find_keyboard(&mut candidates)
   }
 
-  pub fn virtual_device_mut(&mut self) -> &mut VirtualDevice {
-    &mut self.virtual_device
-  }
-
-  pub fn left_stick_mut(&mut self) -> &mut Arc<Mutex<JoyStickState>> {
-    &mut self.left_stick
-  }
-
-  pub fn right_stick_mut(&mut self) -> &mut Arc<Mutex<JoyStickState>> {
-    &mut self.right_stick
-  }
-
-  pub fn handle_left_stick(&mut self, speed_per_tick: i32) {
-    let maybe_direction = {
-      let stick_lock = self.left_stick_mut();
-      let stick = stick_lock.lock().unwrap();
-      stick.direction()
-    };
-
-    if let Some(direction) = maybe_direction {
-      let vector = Vector::from(direction) * speed_per_tick;
-
-      let (x, y) = {
-        let mut stick = self.left_stick_mut().lock().unwrap();
-        stick.tilt(vector);
-        (stick.x(), stick.y())
-      };
-
-      self.move_left_stick(Vector::new(x, y));
-    }
-  }
-
-  pub fn move_left_stick(&mut self, vector: Vector) {
-    let (x, y) = vector.tuple();
-
-    self
-      .virtual_device_mut()
-      .emit(&[
-        Self::get_stick_event(JoyStick::Left, JoyStickAxis::X, x),
-        Self::get_stick_event(JoyStick::Left, JoyStickAxis::Y, -y),
-      ])
-      .unwrap();
-  }
-
-  pub fn move_right_stick(&mut self, vector: Vector) {
-    let (x, y) = vector.tuple();
-
-    self
-      .virtual_device_mut()
-      .emit(&[
-        Self::get_stick_event(JoyStick::Right, JoyStickAxis::X, x),
-        Self::get_stick_event(JoyStick::Right, JoyStickAxis::Y, y),
-      ])
-      .unwrap();
-  }
-
-  pub fn center_right_stick(&mut self) {
-    self.move_right_stick(Vector::default());
-  }
-
-  pub fn handle_right_stick(&mut self, now: Instant, timeout: Duration) {
-    if self.right_stick_mut().lock().unwrap().handle_idle(now, timeout) {
-      self.center_right_stick();
-    }
-  }
-
-  fn get_stick_event(stick: JoyStick, axis: JoyStickAxis, value: i32) -> InputEvent {
-    let code = match (stick, axis) {
-      (JoyStick::Left, JoyStickAxis::X) => AbsoluteAxisCode::ABS_X,
-      (JoyStick::Left, JoyStickAxis::Y) => AbsoluteAxisCode::ABS_Y,
-      (JoyStick::Right, JoyStickAxis::X) => AbsoluteAxisCode::ABS_RX,
-      (JoyStick::Right, JoyStickAxis::Y) => AbsoluteAxisCode::ABS_RY,
-    };
-
-    InputEvent::new(EventType::ABSOLUTE.0, code.0, value)
-  }
-
-  pub fn monitor_sticks(&mut self) {
-    let tick_rate = Duration::from_millis(16);
-    let timeout = Duration::from_millis(100);
-    const SPEED_PER_TICK: i32 = 10000;
-
+  pub fn monitor_sticks(controller: Arc<Mutex<Self>>) {
     loop {
-      std::thread::sleep(tick_rate);
-      let now = Instant::now();
-
-      self.handle_left_stick(SPEED_PER_TICK);
-      self.handle_right_stick(now, timeout);
+      {
+        let mut lock = controller.lock().unwrap();
+        lock.handle_left_stick();
+        lock.handle_right_stick();
+      }
+      std::thread::sleep(TICKRATE);
     }
   }
 
-  pub fn process_input_events(&mut self, mouse: Arc<Mutex<Device>>, keyboard: Arc<Mutex<Device>>) {
+  pub fn process_input_events(mouse: Arc<Mutex<Device>>, keyboard: Arc<Mutex<Device>>, controller: Arc<Mutex<Self>>) {
+    mouse.lock().unwrap().grab().unwrap();
+
     let epoll_fd = Self::create_epoll_fd();
 
     let devices = [mouse, keyboard];
@@ -221,12 +144,100 @@ impl Controller {
           let mut device = device.lock().unwrap();
           for original in device.fetch_events().unwrap() {
             if let Ok(event) = ControllerEvent::try_from(original.destructure()) {
-              self.handle_event(event, original);
+              controller.lock().unwrap().handle_event(event, original);
             }
           }
         }
       }
     }
+  }
+
+  fn handle_event(&mut self, event: ControllerEvent, original: InputEvent) {
+    match event {
+      ControllerEvent::Button(event) => self.handle_button_event(event, original),
+      ControllerEvent::JoyStick(event) => self.handle_joystick_event(event, original),
+    }
+  }
+
+  fn mouse_mut(&mut self) -> &mut Mouse {
+    &mut self.mouse
+  }
+
+  fn virtual_device_mut(&mut self) -> &mut VirtualDevice {
+    &mut self.virtual_device
+  }
+
+  fn left_stick_mut(&mut self) -> &mut Arc<Mutex<JoyStickState>> {
+    &mut self.left_stick
+  }
+
+  fn right_stick_mut(&mut self) -> &mut Arc<Mutex<JoyStickState>> {
+    &mut self.right_stick
+  }
+
+  fn handle_left_stick(&mut self) {
+    let maybe_direction = {
+      let stick_lock = self.left_stick_mut();
+      let stick = stick_lock.lock().unwrap();
+      stick.direction()
+    };
+
+    if let Some(direction) = maybe_direction {
+      let vector = Vector::from(direction) * LEFT_STICK_SENSITIVITY;
+
+      let (x, y) = {
+        let mut stick = self.left_stick_mut().lock().unwrap();
+        stick.tilt(vector);
+        (stick.x(), stick.y())
+      };
+
+      self.move_left_stick(Vector::new(x, y));
+    }
+  }
+
+  fn move_left_stick(&mut self, vector: Vector) {
+    let (x, y) = vector.tuple();
+
+    self
+      .virtual_device_mut()
+      .emit(&[
+        Self::get_stick_event(JoyStick::Left, JoyStickAxis::X, x),
+        Self::get_stick_event(JoyStick::Left, JoyStickAxis::Y, -y),
+      ])
+      .unwrap();
+  }
+
+  fn move_right_stick(&mut self, vector: Vector) {
+    let (x, y) = vector.tuple();
+
+    self
+      .virtual_device_mut()
+      .emit(&[
+        Self::get_stick_event(JoyStick::Right, JoyStickAxis::X, x),
+        Self::get_stick_event(JoyStick::Right, JoyStickAxis::Y, y),
+      ])
+      .unwrap();
+  }
+
+  fn center_right_stick(&mut self) {
+    self.move_right_stick(Vector::default());
+  }
+
+  fn handle_right_stick(&mut self) {
+    if self.right_stick_mut().lock().unwrap().handle_idle() {
+      self.center_right_stick();
+    }
+  }
+
+  fn get_stick_event(stick: JoyStick, axis: JoyStickAxis, value: i32) -> InputEvent {
+    let code = match (stick, axis) {
+      (JoyStick::Left, JoyStickAxis::X) => AbsoluteAxisCode::ABS_X,
+      (JoyStick::Left, JoyStickAxis::Y) => AbsoluteAxisCode::ABS_Y,
+      (JoyStick::Right, JoyStickAxis::X) => AbsoluteAxisCode::ABS_RX,
+      (JoyStick::Right, JoyStickAxis::Y) => AbsoluteAxisCode::ABS_RY,
+    };
+
+    InputEvent::new(EventType::ABSOLUTE.0, code.0, value)
   }
 
   fn extract_input_number(phys: Option<&str>) -> Option<u32> {
@@ -247,7 +258,7 @@ impl Controller {
     }
   }
 
-  pub fn find_mice() -> Vec<Device> {
+  fn find_mice() -> Vec<Device> {
     let mut candidates: Vec<Device> = evdev::enumerate()
       .filter(|(_, device)| {
         let events = device.supported_events();
@@ -302,7 +313,11 @@ impl Controller {
     candidates
   }
 
-  pub fn find_keyboards() -> Vec<Device> {
+  fn find_mouse(candidates: &mut Vec<Device>) -> Device {
+    candidates.remove(0)
+  }
+
+  fn find_keyboards() -> Vec<Device> {
     let mut candidates: Vec<Device> = evdev::enumerate()
       .filter(|(_, device)| {
         let events = device.supported_events();
@@ -342,6 +357,11 @@ impl Controller {
     candidates.sort_by_key(|device| Self::extract_input_number(device.physical_path()).unwrap_or(u32::MAX));
 
     candidates
+  }
+
+  fn find_keyboard(candidates: &mut Vec<Device>) -> Device {
+    let index = candidates.iter().position(|k| k.name().is_some_and(|name| name.contains("xremap"))).unwrap_or(0);
+    candidates.remove(index)
   }
 }
 

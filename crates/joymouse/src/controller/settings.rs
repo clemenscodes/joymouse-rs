@@ -1,6 +1,6 @@
 use crate::controller::button::ControllerButton;
 
-use std::{collections::HashMap, sync::LazyLock};
+use std::{collections::HashMap, sync::LazyLock, time::Duration};
 
 use evdev::KeyCode;
 
@@ -25,6 +25,9 @@ impl Default for ControllerSettings {
 
 pub const MAX_STICK_TILT: i32 = 32767;
 pub const MIN_STICK_TILT: i32 = -MAX_STICK_TILT;
+pub const TICKRATE: Duration = Duration::from_millis(16);
+pub const LEFT_STICK_SENSITIVITY: i32 = 10000;
+pub const MOUSE_IDLE_TIMEOUT: Duration = Duration::from_millis(100);
 
 pub static SETTINGS: LazyLock<ControllerSettings> = LazyLock::new(ControllerSettings::default);
 

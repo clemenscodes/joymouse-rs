@@ -2,7 +2,7 @@ use std::time::{Duration, Instant};
 
 use crate::controller::{
   joystick::{direction::Direction, vector::Vector},
-  settings::{MAX_STICK_TILT, SETTINGS},
+  settings::{MAX_STICK_TILT, MOUSE_IDLE_TIMEOUT, SETTINGS},
   state::State,
 };
 
@@ -121,13 +121,14 @@ impl JoyStickState {
     self.last_event
   }
 
-  pub fn is_idle(&self, now: Instant, timeout: Duration) -> bool {
+  pub fn is_idle(&self, timeout: Duration) -> bool {
+    let now = Instant::now();
     let elapsed = now.duration_since(self.last_event());
     elapsed > timeout && (self.x() != 0 || self.y() != 0)
   }
 
-  pub fn handle_idle(&mut self, now: Instant, timeout: Duration) -> bool {
-    if self.is_idle(now, timeout) {
+  pub fn handle_idle(&mut self) -> bool {
+    if self.is_idle(MOUSE_IDLE_TIMEOUT) {
       self.recenter();
       return true;
     }
