@@ -174,14 +174,11 @@ impl Controller {
   }
 
   pub fn handle_left_stick(&mut self) {
-    println!("Handling left stick: {:#?}", self);
     let maybe_direction = {
       let stick_lock = self.left_stick_mut();
       let stick = stick_lock.lock().unwrap();
       stick.direction()
     };
-
-    println!("Left stick direction: {:#?}", maybe_direction);
 
     if let Some(direction) = maybe_direction {
       let vector = Vector::from(direction) * LEFT_STICK_SENSITIVITY;
