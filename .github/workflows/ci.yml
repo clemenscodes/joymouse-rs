@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [master, main]
+    branches: [main]
   pull_request:
     types: [opened, synchronize]
 
@@ -60,12 +60,12 @@ jobs:
           cp "$joymouse_glibc_path" release/joymouse
       - name: Release
         uses: softprops/action-gh-release@v2
-        if: startsWith(github.ref, 'refs/heads/master')
+        if: startsWith(github.ref, 'refs/heads/main')
         with:
           name: Downloads
           tag_name: latest
           body: |
-            Latest compiled executables from the master branch:
+            Latest compiled executables from the main branch:
 
             - `joymouse-musl-static`: Statically linked Linux build
             - `joymouse`: Dynamically linked (glibc) Linux build
