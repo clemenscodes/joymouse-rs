@@ -34,7 +34,7 @@ impl Default for JoyStickState {
 }
 
 impl JoyStickState {
-  pub fn tilt(&mut self, vector: Vector) -> i32 {
+  pub fn tilt(&mut self, vector: Vector) -> Vector {
     self.last_event = Instant::now();
 
     let sensitivity = SETTINGS.sensitivity();
@@ -49,11 +49,39 @@ impl JoyStickState {
       self.y = (self.y as f64 * scale).round() as i32;
     }
 
-    if vector.dx() != 0 {
-      self.x
-    } else {
-      self.y
+    Vector::new(self.x, self.y)
+  }
+
+  pub fn micro(&mut self, vector: Vector) -> Vector {
+    self.last_event = Instant::now();
+
+    let sensitivity = SETTINGS.sensitivity() as f64;
+    let mouse_amplification = 3.0;
+
+    let dx = vector.dx() as f64 * sensitivity * mouse_amplification;
+    let dy = vector.dy() as f64 * sensitivity * mouse_amplification;
+
+    self.x = (self.x as f64 + dx).round() as i32;
+    self.y = (self.y as f64 + dy).round() as i32;
+
+    let fx = self.x as f64;
+    let fy = self.y as f64;
+    let magnitude = (fx.powi(2) + fy.powi(2)).sqrt();
+
+    let direction_threshold = 1024.0;
+    if magnitude < direction_threshold {
+      return Vector::new(self.x, self.y);
     }
+
+    let min_radius = MAX_STICK_TILT as f64 * 0.3;
+    let max_radius = MAX_STICK_TILT as f64 * 0.8;
+    let clamped_radius = magnitude.clamp(min_radius, max_radius);
+
+    let angle = fy.atan2(fx);
+    self.x = (angle.cos() * clamped_radius).round() as i32;
+    self.y = (angle.sin() * clamped_radius).round() as i32;
+
+    Vector::new(self.x, self.y)
   }
 
   pub fn update_direction(&mut self) {
@@ -76,14 +104,7 @@ impl JoyStickState {
   }
 
   pub fn recenter(&mut self) {
-    self.x = 0;
-    self.y = 0;
-    self.up = State::default();
-    self.down = State::default();
-    self.left = State::default();
-    self.right = State::default();
-    self.direction = None;
-    self.last_event = Instant::now();
+    *self = Self::default();
   }
 
   pub fn set_up(&mut self, up: State) {

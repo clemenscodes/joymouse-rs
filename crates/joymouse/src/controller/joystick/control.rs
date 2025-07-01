@@ -1,4 +1,4 @@
-use evdev::{AbsoluteAxisCode, EventType, InputEvent};
+use evdev::InputEvent;
 
 use crate::controller::{
   Controller,
@@ -10,7 +10,6 @@ use crate::controller::{
 
 impl Controller {
   pub fn handle_joystick_event(&mut self, event: ControllerJoyStickEvent, original: InputEvent) {
-    let code = AbsoluteAxisCode::from(&event);
     let joystick = event.joystick();
     let axis = event.axis();
     let polarity = event.polarity();
@@ -26,21 +25,15 @@ impl Controller {
     let vector = Vector::from((axis, polarity, joystick, direction));
 
     if *joystick == JoyStick::Right {
-      let position = self.right_stick.lock().unwrap().tilt(vector);
-      let virtual_event = InputEvent::new(EventType::ABSOLUTE.0, code.0, position);
-      let events = vec![virtual_event];
-      self.emit_events(&events);
+      let vector = self.right_stick.lock().unwrap().micro(vector);
+      self.move_right_stick(vector);
     } else {
       let (x, y) = {
         let mut stick = self.left_stick.lock().unwrap();
         stick.tilt(vector);
         (stick.x(), stick.y())
       };
-      let events = vec![
-        InputEvent::new(EventType::ABSOLUTE.0, AbsoluteAxisCode::ABS_X.0, x),
-        InputEvent::new(EventType::ABSOLUTE.0, AbsoluteAxisCode::ABS_Y.0, y),
-      ];
-      self.emit_events(&events);
+      self.move_left_stick(Vector::new(x, y), None);
     }
   }
 

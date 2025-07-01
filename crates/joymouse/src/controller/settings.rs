@@ -18,7 +18,7 @@ impl ControllerSettings {
 impl Default for ControllerSettings {
   fn default() -> Self {
     Self {
-      sensitivity: 100,
+      sensitivity: RIGHT_STICK_SENSITIVITY,
     }
   }
 }
@@ -29,11 +29,12 @@ pub const PRODUCT: u16 = 0x5678;
 pub const VERSION: u16 = 0x0100;
 pub const MAX_STICK_TILT: i32 = 32767;
 pub const MIN_STICK_TILT: i32 = -MAX_STICK_TILT - 1;
-pub const DEADZONE: i32 = 256;
+pub const DEADZONE: i32 = 0;
 pub const NOISE_TOLERANCE: i32 = 0;
 pub const TICKRATE: Duration = Duration::from_millis(16);
 pub const LEFT_STICK_SENSITIVITY: i32 = 10000;
-pub const MOUSE_IDLE_TIMEOUT: Duration = Duration::from_millis(100);
+pub const RIGHT_STICK_SENSITIVITY: i32 = 250;
+pub const MOUSE_IDLE_TIMEOUT: Duration = Duration::from_millis(20);
 
 pub static SETTINGS: LazyLock<ControllerSettings> = LazyLock::new(ControllerSettings::default);
 
@@ -41,7 +42,7 @@ pub static CONTROLLER_KEY_MAP: LazyLock<HashMap<KeyCode, ControllerButton>> = La
   let mut map = HashMap::new();
 
   map.insert(KeyCode::KEY_SPACE, ControllerButton::South);
-  map.insert(KeyCode::KEY_LEFTSHIFT, ControllerButton::East);
+  map.insert(KeyCode::KEY_LEFTCTRL, ControllerButton::East);
   map.insert(KeyCode::KEY_F, ControllerButton::North);
   map.insert(KeyCode::KEY_C, ControllerButton::West);
   map.insert(KeyCode::KEY_UP, ControllerButton::Up);

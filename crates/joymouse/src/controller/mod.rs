@@ -7,7 +7,7 @@ mod state;
 
 use crate::{
   controller::{
-    joystick::{JoyStick, JoyStickAxis, JoyStickState},
+    joystick::{Direction, JoyStick, JoyStickAxis, JoyStickState},
     settings::{
       DEADZONE, LEFT_STICK_SENSITIVITY, MAX_STICK_TILT, MIN_STICK_TILT, NAME, NOISE_TOLERANCE,
       PRODUCT, TICKRATE, VENDOR, VERSION,
@@ -173,7 +173,6 @@ impl Controller {
       {
         controller.lock().unwrap().handle_left_stick();
       }
-      std::thread::sleep(TICKRATE);
     }
   }
 
@@ -189,20 +188,31 @@ impl Controller {
 
       let (x, y) = {
         let mut stick = self.left_stick_mut().lock().unwrap();
+
         stick.tilt(vector);
         (stick.x(), stick.y())
       };
 
-      self.move_left_stick(Vector::new(x, y));
+      self.move_left_stick(Vector::new(x, y), Some(direction));
     } else {
       self.center_left_stick();
     }
   }
 
-  fn move_left_stick(&mut self, vector: Vector) {
+  fn move_left_stick(&mut self, vector: Vector, direction: Option<Direction>) {
+    let (x, y) = if let Some(direction) = direction {
+      if direction == Direction::North {
+        (0, -vector.dy() * 2)
+      } else {
+        (vector.dx(), -vector.dy())
+      }
+    } else {
+      (vector.dx(), -vector.dy())
+    };
+
     self.emit_events(&[
-      Self::get_stick_event(JoyStick::Left, JoyStickAxis::X, vector.dx()),
-      Self::get_stick_event(JoyStick::Left, JoyStickAxis::Y, -vector.dy()),
+      Self::get_stick_event(JoyStick::Left, JoyStickAxis::X, x),
+      Self::get_stick_event(JoyStick::Left, JoyStickAxis::Y, y),
     ]);
   }
 
@@ -214,7 +224,7 @@ impl Controller {
   }
 
   fn center_left_stick(&mut self) {
-    self.move_left_stick(Vector::default());
+    self.move_left_stick(Vector::default(), None);
   }
 
   fn center_right_stick(&mut self) {
