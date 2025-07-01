@@ -35,3 +35,10 @@ git clone https://github.com/clemenscodes/joymouse.git
 cd joymouse
 cargo build --release
 ```
+
+## Contributing
+
+Contributions are welcome!
+Please have a look at the [issues](https://github.com/clemenscodes/joymouse-rs/issues)
+to see what currently needs help
+or what features are planned and just pick what you like.
