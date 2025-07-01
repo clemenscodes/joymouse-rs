@@ -6,5 +6,5 @@ license = "MIT"
 authors = ["Clemens Horn <me@clemenshorn.com>"]
 
 [dependencies]
-evdev = "0.13.1"
 epoll = "4.3.3"
+evdev = "0.13.1"
