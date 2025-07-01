@@ -9,17 +9,15 @@ fn main() {
   let keyboard = Arc::new(Mutex::new(Controller::init_keyboard()));
   let controller = Arc::new(Mutex::new(Controller::try_create().unwrap()));
 
-  let controller_for_input = Arc::clone(&controller);
-  let input_thread = std::thread::spawn(move || {
-    Controller::process_input_events(mouse, keyboard, controller_for_input);
-  });
+  let left_stick = Arc::clone(&controller);
+  std::thread::spawn(move || Controller::monitor_left_stick(left_stick));
 
-  let stick_thread = std::thread::spawn(move || {
-    Controller::monitor_sticks(Arc::clone(&controller));
-  });
+  let right_stick = Arc::clone(&controller);
+  std::thread::spawn(move || Controller::monitor_right_stick(right_stick));
+
+  let io = std::thread::spawn(move || Controller::monitor_io(mouse, keyboard, controller));
 
   println!("Started JoyMouse 🎮🐭");
 
-  input_thread.join().unwrap();
-  stick_thread.join().unwrap();
+  io.join().unwrap();
 }

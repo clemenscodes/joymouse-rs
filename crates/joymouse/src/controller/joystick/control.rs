@@ -2,7 +2,9 @@ use evdev::{AbsoluteAxisCode, EventType, InputEvent};
 
 use crate::controller::{
   Controller,
-  joystick::{ControllerJoyStickEvent, JoyStick, axis::JoyStickAxis, polarity::Polarity, vector::Vector},
+  joystick::{
+    ControllerJoyStickEvent, JoyStick, axis::JoyStickAxis, polarity::Polarity, vector::Vector,
+  },
   state::State,
 };
 

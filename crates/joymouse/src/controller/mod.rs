@@ -8,7 +8,10 @@ mod state;
 use crate::{
   controller::{
     joystick::{JoyStick, JoyStickAxis, JoyStickState},
-    settings::{LEFT_STICK_SENSITIVITY, TICKRATE},
+    settings::{
+      DEADZONE, LEFT_STICK_SENSITIVITY, MAX_STICK_TILT, MIN_STICK_TILT, NAME, NOISE_TOLERANCE,
+      PRODUCT, TICKRATE, VENDOR, VERSION,
+    },
   },
   mouse::Mouse,
 };
@@ -21,8 +24,8 @@ use std::{
 
 use epoll::{Event, Events};
 use evdev::{
-  AbsInfo, AbsoluteAxisCode, AttributeSet, BusType, Device, EventType, InputEvent, InputId, KeyCode, MiscCode,
-  RelativeAxisCode, UinputAbsSetup, uinput::VirtualDevice,
+  AbsInfo, AbsoluteAxisCode, AttributeSet, BusType, Device, EventType, InputEvent, InputId,
+  KeyCode, MiscCode, RelativeAxisCode, UinputAbsSetup, uinput::VirtualDevice,
 };
 
 #[derive(Debug)]
@@ -36,14 +39,7 @@ pub struct Controller {
 impl Controller {
   pub fn try_create() -> Result<Self, Box<dyn std::error::Error>> {
     let builder = VirtualDevice::builder()?;
-
-    let name = "JoyMouse";
-
-    let vendor = 0x1234;
-    let product = 0x5678;
-    let version = 0x0100;
-    let input_id = InputId::new(BusType::BUS_USB, vendor, product, version);
-
+    let input_id = InputId::new(BusType::BUS_USB, VENDOR, PRODUCT, VERSION);
     let mut button_set = AttributeSet::<KeyCode>::new();
 
     let buttons = [
@@ -70,14 +66,14 @@ impl Controller {
       button_set.insert(button);
     }
 
-    let axis_info = AbsInfo::new(0, -32768, 32767, 0, 4096, 1);
+    let axis_info = AbsInfo::new(0, MIN_STICK_TILT, MAX_STICK_TILT, NOISE_TOLERANCE, DEADZONE, 0);
     let x_axis = UinputAbsSetup::new(AbsoluteAxisCode::ABS_X, axis_info);
     let y_axis = UinputAbsSetup::new(AbsoluteAxisCode::ABS_Y, axis_info);
     let rx_axis = UinputAbsSetup::new(AbsoluteAxisCode::ABS_RX, axis_info);
     let ry_axis = UinputAbsSetup::new(AbsoluteAxisCode::ABS_RY, axis_info);
 
     let virtual_device = builder
-      .name(&name)
+      .name(&NAME)
       .input_id(input_id)
       .with_keys(&button_set)?
       .with_absolute_axis(&x_axis)?
@@ -106,18 +102,11 @@ impl Controller {
     Self::find_keyboard(&mut candidates)
   }
 
-  pub fn monitor_sticks(controller: Arc<Mutex<Self>>) {
-    loop {
-      {
-        let mut lock = controller.lock().unwrap();
-        lock.handle_left_stick();
-        lock.handle_right_stick();
-      }
-      std::thread::sleep(TICKRATE);
-    }
-  }
-
-  pub fn process_input_events(mouse: Arc<Mutex<Device>>, keyboard: Arc<Mutex<Device>>, controller: Arc<Mutex<Self>>) {
+  pub fn monitor_io(
+    mouse: Arc<Mutex<Device>>,
+    keyboard: Arc<Mutex<Device>>,
+    controller: Arc<Mutex<Self>>,
+  ) {
     mouse.lock().unwrap().grab().unwrap();
 
     let epoll_fd = Self::create_epoll_fd();
@@ -175,12 +164,24 @@ impl Controller {
     &mut self.right_stick
   }
 
-  fn handle_left_stick(&mut self) {
+  pub fn monitor_left_stick(controller: Arc<Mutex<Self>>) {
+    loop {
+      {
+        controller.lock().unwrap().handle_left_stick();
+      }
+      std::thread::sleep(TICKRATE);
+    }
+  }
+
+  pub fn handle_left_stick(&mut self) {
+    println!("Handling left stick: {:#?}", self);
     let maybe_direction = {
       let stick_lock = self.left_stick_mut();
       let stick = stick_lock.lock().unwrap();
       stick.direction()
     };
+
+    println!("Left stick direction: {:#?}", maybe_direction);
 
     if let Some(direction) = maybe_direction {
       let vector = Vector::from(direction) * LEFT_STICK_SENSITIVITY;
@@ -223,7 +224,16 @@ impl Controller {
     self.move_right_stick(Vector::default());
   }
 
-  fn handle_right_stick(&mut self) {
+  pub fn monitor_right_stick(controller: Arc<Mutex<Self>>) {
+    loop {
+      {
+        controller.lock().unwrap().handle_right_stick();
+      }
+      std::thread::sleep(TICKRATE);
+    }
+  }
+
+  pub fn handle_right_stick(&mut self) {
     if self.right_stick_mut().lock().unwrap().handle_idle() {
       self.center_right_stick();
     }
@@ -308,7 +318,8 @@ impl Controller {
       .map(|(_, device)| device)
       .collect();
 
-    candidates.sort_by_key(|device| Self::extract_input_number(device.physical_path()).unwrap_or(u32::MAX));
+    candidates
+      .sort_by_key(|device| Self::extract_input_number(device.physical_path()).unwrap_or(u32::MAX));
 
     candidates
   }
@@ -354,13 +365,17 @@ impl Controller {
       .map(|(_, device)| device)
       .collect();
 
-    candidates.sort_by_key(|device| Self::extract_input_number(device.physical_path()).unwrap_or(u32::MAX));
+    candidates
+      .sort_by_key(|device| Self::extract_input_number(device.physical_path()).unwrap_or(u32::MAX));
 
     candidates
   }
 
   fn find_keyboard(candidates: &mut Vec<Device>) -> Device {
-    let index = candidates.iter().position(|k| k.name().is_some_and(|name| name.contains("xremap"))).unwrap_or(0);
+    let index = candidates
+      .iter()
+      .position(|k| k.name().is_some_and(|name| name.contains("xremap")))
+      .unwrap_or(0);
     candidates.remove(index)
   }
 }

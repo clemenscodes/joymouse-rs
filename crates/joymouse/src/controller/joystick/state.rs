@@ -71,10 +71,7 @@ impl JoyStickState {
       (false, true, false, false) => Some(Direction::South),
       (false, false, true, false) => Some(Direction::West),
       (false, false, false, true) => Some(Direction::East),
-      _ => {
-        self.recenter();
-        None
-      }
+      _ => None,
     };
   }
 

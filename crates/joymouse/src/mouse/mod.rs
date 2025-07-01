@@ -1,4 +1,6 @@
-use evdev::{AttributeSet, BusType, InputEvent, InputId, KeyCode, RelativeAxisCode, uinput::VirtualDevice};
+use evdev::{
+  AttributeSet, BusType, InputEvent, InputId, KeyCode, RelativeAxisCode, uinput::VirtualDevice,
+};
 
 #[derive(Debug)]
 pub struct Mouse {
@@ -26,7 +28,8 @@ impl Mouse {
     axes.insert(RelativeAxisCode::REL_Y);
     axes.insert(RelativeAxisCode::REL_WHEEL);
 
-    let virtual_device = builder.name(&name).input_id(id).with_keys(&buttons)?.with_relative_axes(&axes)?.build()?;
+    let virtual_device =
+      builder.name(&name).input_id(id).with_keys(&buttons)?.with_relative_axes(&axes)?.build()?;
 
     Ok(Self {
       virtual_device,

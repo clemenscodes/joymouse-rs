@@ -23,8 +23,14 @@ impl Default for ControllerSettings {
   }
 }
 
+pub const NAME: &str = "JoyMouse";
+pub const VENDOR: u16 = 0x1234;
+pub const PRODUCT: u16 = 0x5678;
+pub const VERSION: u16 = 0x0100;
 pub const MAX_STICK_TILT: i32 = 32767;
-pub const MIN_STICK_TILT: i32 = -MAX_STICK_TILT;
+pub const MIN_STICK_TILT: i32 = -MAX_STICK_TILT - 1;
+pub const DEADZONE: i32 = 256;
+pub const NOISE_TOLERANCE: i32 = 0;
 pub const TICKRATE: Duration = Duration::from_millis(16);
 pub const LEFT_STICK_SENSITIVITY: i32 = 10000;
 pub const MOUSE_IDLE_TIMEOUT: Duration = Duration::from_millis(100);
@@ -56,7 +62,11 @@ pub static CONTROLLER_KEY_MAP: LazyLock<HashMap<KeyCode, ControllerButton>> = La
   map.insert(KeyCode::KEY_D, ControllerButton::Starboard);
 
   for button in ControllerButton::all() {
-    assert!(map.values().any(|b| b == button), "Missing mapping for ControllerButton::{:?}", button);
+    assert!(
+      map.values().any(|b| b == button),
+      "Missing mapping for ControllerButton::{:?}",
+      button
+    );
   }
 
   map
