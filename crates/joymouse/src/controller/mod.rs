@@ -156,6 +156,10 @@ impl Controller {
     &mut self.virtual_device
   }
 
+  fn emit_events(&mut self, events: &[InputEvent]) {
+    self.virtual_device_mut().emit(events).unwrap()
+  }
+
   fn left_stick_mut(&mut self) -> &mut Arc<Mutex<JoyStickState>> {
     &mut self.left_stick
   }
@@ -190,31 +194,27 @@ impl Controller {
       };
 
       self.move_left_stick(Vector::new(x, y));
+    } else {
+      self.center_left_stick();
     }
   }
 
   fn move_left_stick(&mut self, vector: Vector) {
-    let (x, y) = vector.tuple();
-
-    self
-      .virtual_device_mut()
-      .emit(&[
-        Self::get_stick_event(JoyStick::Left, JoyStickAxis::X, x),
-        Self::get_stick_event(JoyStick::Left, JoyStickAxis::Y, -y),
-      ])
-      .unwrap();
+    self.emit_events(&[
+      Self::get_stick_event(JoyStick::Left, JoyStickAxis::X, vector.dx()),
+      Self::get_stick_event(JoyStick::Left, JoyStickAxis::Y, -vector.dy()),
+    ]);
   }
 
   fn move_right_stick(&mut self, vector: Vector) {
-    let (x, y) = vector.tuple();
+    self.emit_events(&[
+      Self::get_stick_event(JoyStick::Right, JoyStickAxis::X, vector.dx()),
+      Self::get_stick_event(JoyStick::Right, JoyStickAxis::Y, vector.dy()),
+    ]);
+  }
 
-    self
-      .virtual_device_mut()
-      .emit(&[
-        Self::get_stick_event(JoyStick::Right, JoyStickAxis::X, x),
-        Self::get_stick_event(JoyStick::Right, JoyStickAxis::Y, y),
-      ])
-      .unwrap();
+  fn center_left_stick(&mut self) {
+    self.move_left_stick(Vector::default());
   }
 
   fn center_right_stick(&mut self) {

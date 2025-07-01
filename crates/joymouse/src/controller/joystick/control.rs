@@ -29,15 +29,18 @@ impl Controller {
       let position = self.right_stick.lock().unwrap().tilt(vector);
       let virtual_event = InputEvent::new(EventType::ABSOLUTE.0, code.0, position);
       let events = vec![virtual_event];
-      self.virtual_device.emit(&events).unwrap();
+      self.emit_events(&events);
     } else {
-      self.left_stick.lock().unwrap().tilt(vector);
-      let stick = self.left_stick.lock().unwrap();
+      let (x, y) = {
+        let mut stick = self.left_stick.lock().unwrap();
+        stick.tilt(vector);
+        (stick.x(), stick.y())
+      };
       let events = vec![
-        InputEvent::new(EventType::ABSOLUTE.0, AbsoluteAxisCode::ABS_X.0, stick.x()),
-        InputEvent::new(EventType::ABSOLUTE.0, AbsoluteAxisCode::ABS_Y.0, stick.y()),
+        InputEvent::new(EventType::ABSOLUTE.0, AbsoluteAxisCode::ABS_X.0, x),
+        InputEvent::new(EventType::ABSOLUTE.0, AbsoluteAxisCode::ABS_Y.0, y),
       ];
-      self.virtual_device.emit(&events).unwrap();
+      self.emit_events(&events);
     }
   }
 

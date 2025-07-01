@@ -28,10 +28,6 @@ impl Vector {
   pub fn dy(&self) -> i32 {
     self.dy
   }
-
-  pub fn tuple(&self) -> (i32, i32) {
-    (self.dx(), self.dy())
-  }
 }
 
 impl std::ops::Mul<i32> for Vector {
