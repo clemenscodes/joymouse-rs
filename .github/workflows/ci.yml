@@ -56,7 +56,7 @@ jobs:
       - name: Prepare release artifacts
         run: |
           mkdir -p release
-          cp "$joymouse_musl_static_path" release/joymouse-musl-static
+          cp "$joymouse_musl_static" release/joymouse-musl-static
           cp "$joymouse_glibc_path" release/joymouse
       - name: Release
         uses: softprops/action-gh-release@v2
