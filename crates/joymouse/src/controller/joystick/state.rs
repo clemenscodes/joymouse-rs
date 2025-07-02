@@ -2,7 +2,7 @@ use std::time::{Duration, Instant};
 
 use crate::controller::{
   joystick::{direction::Direction, vector::Vector},
-  settings::{MAX_STICK_TILT, MOUSE_IDLE_TIMEOUT, SETTINGS},
+  settings::{MAX_STICK_TILT, MOUSE_IDLE_TIMEOUT, SETTINGS, TICKRATE},
   state::State,
 };
 
@@ -16,6 +16,8 @@ pub struct JoyStickState {
   right: State,
   direction: Option<Direction>,
   last_event: Instant,
+  tick_start: Instant,
+  mouse_deltas: Vec<(f64, f64)>,
 }
 
 impl Default for JoyStickState {
@@ -29,6 +31,8 @@ impl Default for JoyStickState {
       right: Default::default(),
       direction: Default::default(),
       last_event: Instant::now(),
+      tick_start: Instant::now(),
+      mouse_deltas: Default::default(),
     }
   }
 }
@@ -53,33 +57,31 @@ impl JoyStickState {
   }
 
   pub fn micro(&mut self, vector: Vector) -> Vector {
-    self.last_event = Instant::now();
+    let now = Instant::now();
 
-    let sensitivity = SETTINGS.sensitivity() as f64;
-    let mouse_amplification = 3.0;
+    self.mouse_deltas.push((vector.dx() as f64, vector.dy() as f64));
+    let elapsed = now.duration_since(self.tick_start);
 
-    let dx = vector.dx() as f64 * sensitivity * mouse_amplification;
-    let dy = vector.dy() as f64 * sensitivity * mouse_amplification;
+    if elapsed >= TICKRATE {
+      let (sum_dx, sum_dy): (f64, f64) = self
+        .mouse_deltas
+        .iter()
+        .copied()
+        .fold((0.0, 0.0), |acc, (dx, dy)| (acc.0 + dx, acc.1 + dy));
 
-    self.x = (self.x as f64 + dx).round() as i32;
-    self.y = (self.y as f64 + dy).round() as i32;
+      println!(
+        "[micro] Commit: dx sum = {:.2}, dy sum = {:.2}, events collected = {:#?}",
+        sum_dx,
+        sum_dy,
+        self.mouse_deltas.len()
+      );
 
-    let fx = self.x as f64;
-    let fy = self.y as f64;
-    let magnitude = (fx.powi(2) + fy.powi(2)).sqrt();
+      self.mouse_deltas.clear();
+      self.tick_start = now;
 
-    let direction_threshold = 1024.0;
-    if magnitude < direction_threshold {
-      return Vector::new(self.x, self.y);
+      let tilt_vector = Vector::new(sum_dx.round() as i32, sum_dy.round() as i32);
+      return self.tilt(tilt_vector);
     }
-
-    let min_radius = MAX_STICK_TILT as f64 * 0.3;
-    let max_radius = MAX_STICK_TILT as f64 * 0.8;
-    let clamped_radius = magnitude.clamp(min_radius, max_radius);
-
-    let angle = fy.atan2(fx);
-    self.x = (angle.cos() * clamped_radius).round() as i32;
-    self.y = (angle.sin() * clamped_radius).round() as i32;
 
     Vector::new(self.x, self.y)
   }
