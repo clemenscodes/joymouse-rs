@@ -2,7 +2,7 @@ use std::time::{Duration, Instant};
 
 use crate::controller::{
   joystick::{direction::Direction, vector::Vector},
-  settings::{MAX_STICK_TILT, MIN_STICK_TILT, MOUSE_IDLE_TIMEOUT, SETTINGS, TICKRATE},
+  settings::{LEFT_STICK_SENSITIVITY, MAX_STICK_TILT, MOUSE_IDLE_TIMEOUT, SETTINGS, TICKRATE},
   state::State,
 };
 
@@ -41,7 +41,7 @@ impl JoyStickState {
   pub fn tilt(&mut self, vector: Vector) -> Vector {
     self.last_event = Instant::now();
 
-    let sensitivity = SETTINGS.sensitivity();
+    let sensitivity = LEFT_STICK_SENSITIVITY;
 
     self.x += vector.dx() * sensitivity;
     self.y += vector.dy() * sensitivity;
@@ -57,8 +57,10 @@ impl JoyStickState {
   }
 
   pub fn micro(&mut self, vector: Vector) -> Vector {
-    let now = Instant::now();
+    const MOVEMENT_DEADZONE: f64 = 0.5; // Speed threshold to ignore jitter
+    const BLEND: f64 = 0.2; // Smoothing factor (0.0 = none, 1.0 = slowest)
 
+    let now = Instant::now();
     self.mouse_deltas.push((vector.dx() as f64, vector.dy() as f64));
     let elapsed = now.duration_since(self.tick_start);
 
@@ -70,40 +72,35 @@ impl JoyStickState {
         .fold((0.0, 0.0), |acc, (dx, dy)| (acc.0 + dx, acc.1 + dy));
 
       let raw_speed = (sum_dx.powi(2) + sum_dy.powi(2)).sqrt();
-      let angle = sum_dy.atan2(sum_dx); // angle in radians
-      let angle_degrees = angle.to_degrees();
+      let sensitivity = SETTINGS.sensitivity();
+      let scaled_speed = raw_speed * sensitivity;
 
-      // Clamp speed to 1-100
-      let clamped_speed = raw_speed.clamp(1.0, 100.0);
-      let normalized_speed = (clamped_speed - 1.0) / 99.0; // Range: 0.0 - 1.0
+      if scaled_speed < MOVEMENT_DEADZONE {
+        self.mouse_deltas.clear();
+        self.tick_start = now;
+        self.last_event = now;
+        self.x = 0;
+        self.y = 0;
+        return Vector::new(0, 0);
+      }
 
-      // Calculate tilt magnitude based on speed
+      let angle = sum_dy.atan2(sum_dx);
+      let clamped_speed = scaled_speed.clamp(1.0, 100.0);
+      let normalized_speed = (clamped_speed - 1.0) / 99.0;
+
       let min_tilt = (MAX_STICK_TILT as f64) * 0.3;
       let max_tilt = (MAX_STICK_TILT as f64) * 1.0;
       let tilt = min_tilt + (max_tilt - min_tilt) * normalized_speed;
 
-      // Final vector calculation
-      let x = tilt * angle.cos();
-      let y = tilt * angle.sin(); // y shrinks when going up, so this is correct
+      let target_x = tilt * angle.cos();
+      let target_y = tilt * angle.sin();
 
-      println!(
-        "[micro] Commit: dx sum = {:.2}, dy sum = {:.2}, speed = {:.2}, angle = {:.2}°, clamped speed = {:.2}, tilt = {:.2}, x = {:.2}, y = {:.2}, events = {}",
-        sum_dx,
-        sum_dy,
-        raw_speed,
-        angle_degrees,
-        clamped_speed,
-        tilt,
-        x,
-        y,
-        self.mouse_deltas.len()
-      );
+      self.x = ((1.0 - BLEND) * self.x as f64 + BLEND * target_x).round() as i32;
+      self.y = ((1.0 - BLEND) * self.y as f64 + BLEND * target_y).round() as i32;
 
       self.mouse_deltas.clear();
       self.tick_start = now;
-
-      let tilt_vector = Vector::new(x.round() as i32, y.round() as i32);
-      return self.tilt(tilt_vector);
+      self.last_event = now;
     }
 
     Vector::new(self.x, self.y)
