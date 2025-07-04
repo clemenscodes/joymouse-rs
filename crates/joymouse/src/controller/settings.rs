@@ -33,8 +33,10 @@ pub const DEADZONE: i32 = 0;
 pub const NOISE_TOLERANCE: i32 = 0;
 pub const TICKRATE: Duration = Duration::from_millis(16);
 pub const LEFT_STICK_SENSITIVITY: i32 = 10000;
-pub const RIGHT_STICK_SENSITIVITY: f64 = 4.0;
-pub const MOUSE_IDLE_TIMEOUT: Duration = Duration::from_millis(20);
+pub const MINIMUM_TILT: f64 = 0.40;
+pub const MAXIMUM_TILT: f64 = 1.0;
+pub const RIGHT_STICK_SENSITIVITY: f64 = 10.0;
+pub const MOUSE_IDLE_TIMEOUT: Duration = Duration::from_millis(120);
 
 pub static SETTINGS: LazyLock<ControllerSettings> = LazyLock::new(ControllerSettings::default);
 
