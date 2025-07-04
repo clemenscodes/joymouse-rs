@@ -6,11 +6,11 @@ use evdev::KeyCode;
 
 #[derive(Debug)]
 pub struct ControllerSettings {
-  sensitivity: i32,
+  sensitivity: f64,
 }
 
 impl ControllerSettings {
-  pub fn sensitivity(&self) -> i32 {
+  pub fn sensitivity(&self) -> f64 {
     self.sensitivity
   }
 }
@@ -33,7 +33,7 @@ pub const DEADZONE: i32 = 0;
 pub const NOISE_TOLERANCE: i32 = 0;
 pub const TICKRATE: Duration = Duration::from_millis(16);
 pub const LEFT_STICK_SENSITIVITY: i32 = 10000;
-pub const RIGHT_STICK_SENSITIVITY: i32 = 250;
+pub const RIGHT_STICK_SENSITIVITY: f64 = 4.0;
 pub const MOUSE_IDLE_TIMEOUT: Duration = Duration::from_millis(20);
 
 pub static SETTINGS: LazyLock<ControllerSettings> = LazyLock::new(ControllerSettings::default);
