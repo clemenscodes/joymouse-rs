@@ -2,7 +2,10 @@ use std::time::{Duration, Instant};
 
 use crate::controller::{
   joystick::{direction::Direction, vector::Vector},
-  settings::{LEFT_STICK_SENSITIVITY, MAX_STICK_TILT, MOUSE_IDLE_TIMEOUT, SETTINGS, TICKRATE},
+  settings::{
+    LEFT_STICK_SENSITIVITY, MAX_STICK_TILT, MAXIMUM_TILT, MINIMUM_TILT, MOUSE_IDLE_TIMEOUT,
+    SETTINGS, TICKRATE,
+  },
   state::State,
 };
 
@@ -88,8 +91,8 @@ impl JoyStickState {
       let clamped_speed = scaled_speed.clamp(1.0, 100.0);
       let normalized_speed = (clamped_speed - 1.0) / 99.0;
 
-      let min_tilt = (MAX_STICK_TILT as f64) * 0.3;
-      let max_tilt = (MAX_STICK_TILT as f64) * 1.0;
+      let min_tilt = (MAX_STICK_TILT as f64) * MINIMUM_TILT;
+      let max_tilt = (MAX_STICK_TILT as f64) * MAXIMUM_TILT;
       let tilt = min_tilt + (max_tilt - min_tilt) * normalized_speed;
 
       let target_x = tilt * angle.cos();
