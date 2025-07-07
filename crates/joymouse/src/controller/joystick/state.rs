@@ -17,7 +17,7 @@ pub struct JoyStickState {
   direction: Option<Direction>,
   last_event: Instant,
   tick_start: Instant,
-  mouse_deltas: Vec<(f64, f64)>,
+  mouse_events: Vec<Vector>,
 }
 
 impl Default for JoyStickState {
@@ -32,7 +32,7 @@ impl Default for JoyStickState {
       direction: Default::default(),
       last_event: Instant::now(),
       tick_start: Instant::now(),
-      mouse_deltas: Default::default(),
+      mouse_events: Default::default(),
     }
   }
 }
@@ -57,17 +57,17 @@ impl JoyStickState {
   }
 
   pub fn micro(&mut self, vector: Vector) -> Vector {
-    let blend = SETTINGS.blend();
     let now = Instant::now();
-    self.mouse_deltas.push((vector.dx(), vector.dy()));
     let elapsed = now.duration_since(self.tick_start);
+
+    self.mouse_events.push(vector);
 
     if elapsed >= SETTINGS.tickrate() {
       let (dx, dy) = self
-        .mouse_deltas
+        .mouse_events
         .iter()
         .copied()
-        .fold((0.0, 0.0), |acc, (dx, dy)| (acc.0 + dx, acc.1 + dy));
+        .fold((0.0, 0.0), |acc, vector| (acc.0 + vector.dx(), acc.1 + vector.dy()));
 
       let raw_speed = (dx.powi(2) + dy.powi(2)).sqrt();
       let sensitivity = SETTINGS.right_stick_sensitivity();
@@ -83,15 +83,57 @@ impl JoyStickState {
       let target_x = tilt * angle.cos();
       let target_y = tilt * angle.sin();
 
-      self.x = ((1.0 - blend) * self.x + blend * target_x).round();
-      self.y = ((1.0 - blend) * self.y + blend * target_y).round();
+      self.update_smoothed_position(target_x, target_y, SETTINGS.blend());
 
-      self.mouse_deltas.clear();
+      self.mouse_events.clear();
       self.tick_start = now;
       self.last_event = now;
     }
 
     Vector::new(self.x, self.y)
+  }
+
+  fn update_smoothed_position(&mut self, target_x: f64, target_y: f64, blend: f64) {
+    let target_mag = (target_x.powi(2) + target_y.powi(2)).sqrt();
+    let min_tilt = SETTINGS.min_tilt_range();
+
+    if target_mag < min_tilt {
+      println!(
+        "[update_smoothed_position] Suppressed update: target too small ({:.2} < {:.2})",
+        target_mag, min_tilt
+      );
+      return;
+    }
+
+    let prev = Vector::new(self.x, self.y);
+
+    let blended_x = (1.0 - blend) * self.x + blend * target_x;
+    let blended_y = (1.0 - blend) * self.y + blend * target_y;
+
+    let current = Vector::new(blended_x.round(), blended_y.round());
+
+    let dot = prev.dx() * current.dx() + prev.dy() * current.dy();
+    if dot < 0.0 {
+      println!(
+        "[update_smoothed_position] Reversal: ({:.0},{:.0}) → ({:.0},{:.0})",
+        prev.dx(),
+        prev.dy(),
+        current.dx(),
+        current.dy()
+      );
+    }
+
+    let current_mag = (current.dx().powi(2) + current.dy().powi(2)).sqrt();
+    if current_mag < 1.0 && (prev.dx() != 0.0 || prev.dy() != 0.0) {
+      println!(
+        "[update_smoothed_position] Sudden stop at ({:.0},{:.0})",
+        current.dx(),
+        current.dy()
+      );
+    }
+
+    self.x = current.dx();
+    self.y = current.dy();
   }
 
   pub fn update_direction(&mut self) {
