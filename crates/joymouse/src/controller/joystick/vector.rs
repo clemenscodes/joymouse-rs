@@ -1,6 +1,6 @@
 use crate::controller::{
   joystick::{JoyStick, axis::JoyStickAxis, direction::Direction, polarity::Polarity},
-  settings::{MAX_STICK_TILT, MIN_STICK_TILT},
+  settings::SETTINGS,
 };
 
 #[derive(Default, Debug, Copy, Clone)]
@@ -12,8 +12,8 @@ pub struct Vector {
 impl Vector {
   pub fn new(dx: i32, dy: i32) -> Self {
     Self {
-      dx: dx.clamp(MIN_STICK_TILT, MAX_STICK_TILT),
-      dy: dy.clamp(MIN_STICK_TILT, MAX_STICK_TILT),
+      dx: dx.clamp(SETTINGS.min_stick_tilt(), SETTINGS.max_stick_tilt()),
+      dy: dy.clamp(SETTINGS.min_stick_tilt(), SETTINGS.max_stick_tilt()),
     }
   }
 

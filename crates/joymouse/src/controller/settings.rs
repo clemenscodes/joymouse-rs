@@ -1,42 +1,103 @@
 use crate::controller::button::ControllerButton;
-
-use std::{collections::HashMap, sync::LazyLock, time::Duration};
-
 use evdev::KeyCode;
+use std::{collections::HashMap, sync::LazyLock, time::Duration};
 
 #[derive(Debug)]
 pub struct ControllerSettings {
-  sensitivity: f64,
+  name: &'static str,
+  vendor: u16,
+  product: u16,
+  version: u16,
+  max_stick_tilt: i32,
+  min_stick_tilt: i32,
+  deadzone: i32,
+  noise_tolerance: i32,
+  tickrate: Duration,
+  left_stick_sensitivity: i32,
+  right_stick_sensitivity: f64,
+  minimum_tilt: f64,
+  maximum_tilt: f64,
+  mouse_idle_timeout: Duration,
 }
 
 impl ControllerSettings {
-  pub fn sensitivity(&self) -> f64 {
-    self.sensitivity
+  pub fn name(&self) -> &'static str {
+    self.name
+  }
+
+  pub fn vendor(&self) -> u16 {
+    self.vendor
+  }
+
+  pub fn product(&self) -> u16 {
+    self.product
+  }
+
+  pub fn version(&self) -> u16 {
+    self.version
+  }
+
+  pub fn max_stick_tilt(&self) -> i32 {
+    self.max_stick_tilt
+  }
+
+  pub fn min_stick_tilt(&self) -> i32 {
+    self.min_stick_tilt
+  }
+
+  pub fn deadzone(&self) -> i32 {
+    self.deadzone
+  }
+
+  pub fn noise_tolerance(&self) -> i32 {
+    self.noise_tolerance
+  }
+
+  pub fn tickrate(&self) -> Duration {
+    self.tickrate
+  }
+
+  pub fn left_stick_sensitivity(&self) -> i32 {
+    self.left_stick_sensitivity
+  }
+
+  pub fn right_stick_sensitivity(&self) -> f64 {
+    self.right_stick_sensitivity
+  }
+
+  pub fn minimum_tilt(&self) -> f64 {
+    self.minimum_tilt
+  }
+
+  pub fn maximum_tilt(&self) -> f64 {
+    self.maximum_tilt
+  }
+
+  pub fn mouse_idle_timeout(&self) -> Duration {
+    self.mouse_idle_timeout
   }
 }
 
 impl Default for ControllerSettings {
   fn default() -> Self {
     Self {
-      sensitivity: RIGHT_STICK_SENSITIVITY,
+      name: "JoyMouse",
+      vendor: 0x1234,
+      product: 0x5678,
+      version: 0x0100,
+      max_stick_tilt: 32767,
+      min_stick_tilt: -32768,
+      deadzone: 0,
+      noise_tolerance: 0,
+      tickrate: Duration::from_millis(16),
+      left_stick_sensitivity: 10000,
+      right_stick_sensitivity: 10.0,
+      minimum_tilt: 0.40,
+      maximum_tilt: 1.0,
+      mouse_idle_timeout: Duration::from_millis(120),
     }
   }
 }
-
-pub const NAME: &str = "JoyMouse";
-pub const VENDOR: u16 = 0x1234;
-pub const PRODUCT: u16 = 0x5678;
-pub const VERSION: u16 = 0x0100;
-pub const MAX_STICK_TILT: i32 = 32767;
-pub const MIN_STICK_TILT: i32 = -MAX_STICK_TILT - 1;
-pub const DEADZONE: i32 = 0;
-pub const NOISE_TOLERANCE: i32 = 0;
-pub const TICKRATE: Duration = Duration::from_millis(16);
-pub const LEFT_STICK_SENSITIVITY: i32 = 10000;
-pub const MINIMUM_TILT: f64 = 0.40;
-pub const MAXIMUM_TILT: f64 = 1.0;
-pub const RIGHT_STICK_SENSITIVITY: f64 = 10.0;
-pub const MOUSE_IDLE_TIMEOUT: Duration = Duration::from_millis(120);
 
 pub static SETTINGS: LazyLock<ControllerSettings> = LazyLock::new(ControllerSettings::default);
 

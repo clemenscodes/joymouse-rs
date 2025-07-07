@@ -8,10 +8,7 @@ mod state;
 use crate::{
   controller::{
     joystick::{Direction, JoyStick, JoyStickAxis, JoyStickState},
-    settings::{
-      DEADZONE, LEFT_STICK_SENSITIVITY, MAX_STICK_TILT, MIN_STICK_TILT, NAME, NOISE_TOLERANCE,
-      PRODUCT, TICKRATE, VENDOR, VERSION,
-    },
+    settings::SETTINGS,
   },
   mouse::Mouse,
 };
@@ -39,7 +36,8 @@ pub struct Controller {
 impl Controller {
   pub fn try_create() -> Result<Self, Box<dyn std::error::Error>> {
     let builder = VirtualDevice::builder()?;
-    let input_id = InputId::new(BusType::BUS_USB, VENDOR, PRODUCT, VERSION);
+    let input_id =
+      InputId::new(BusType::BUS_USB, SETTINGS.vendor(), SETTINGS.product(), SETTINGS.version());
     let mut button_set = AttributeSet::<KeyCode>::new();
 
     let buttons = [
@@ -66,14 +64,21 @@ impl Controller {
       button_set.insert(button);
     }
 
-    let axis_info = AbsInfo::new(0, MIN_STICK_TILT, MAX_STICK_TILT, NOISE_TOLERANCE, DEADZONE, 0);
+    let axis_info = AbsInfo::new(
+      0,
+      SETTINGS.min_stick_tilt(),
+      SETTINGS.max_stick_tilt(),
+      SETTINGS.noise_tolerance(),
+      SETTINGS.deadzone(),
+      0,
+    );
     let x_axis = UinputAbsSetup::new(AbsoluteAxisCode::ABS_X, axis_info);
     let y_axis = UinputAbsSetup::new(AbsoluteAxisCode::ABS_Y, axis_info);
     let rx_axis = UinputAbsSetup::new(AbsoluteAxisCode::ABS_RX, axis_info);
     let ry_axis = UinputAbsSetup::new(AbsoluteAxisCode::ABS_RY, axis_info);
 
     let virtual_device = builder
-      .name(&NAME)
+      .name(SETTINGS.name())
       .input_id(input_id)
       .with_keys(&button_set)?
       .with_absolute_axis(&x_axis)?
@@ -184,7 +189,7 @@ impl Controller {
     };
 
     if let Some(direction) = maybe_direction {
-      let vector = Vector::from(direction) * LEFT_STICK_SENSITIVITY;
+      let vector = Vector::from(direction) * SETTINGS.left_stick_sensitivity();
 
       let (x, y) = {
         let mut stick = self.left_stick_mut().lock().unwrap();
@@ -236,7 +241,7 @@ impl Controller {
       {
         controller.lock().unwrap().handle_right_stick();
       }
-      std::thread::sleep(TICKRATE);
+      std::thread::sleep(SETTINGS.tickrate());
     }
   }
 
