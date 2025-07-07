@@ -15,8 +15,6 @@ pub struct ControllerSettings {
   tickrate: Duration,
   left_stick_sensitivity: f64,
   right_stick_sensitivity: f64,
-  minimum_tilt: f64,
-  maximum_tilt: f64,
   blend: f64,
   mouse_idle_timeout: Duration,
   max_tilt_range: f64,
@@ -83,14 +81,6 @@ impl ControllerSettings {
   pub fn min_tilt_range(&self) -> f64 {
     self.min_tilt_range
   }
-
-  pub const fn minimum_tilt(&self) -> f64 {
-    self.minimum_tilt
-  }
-
-  pub const fn maximum_tilt(&self) -> f64 {
-    self.maximum_tilt
-  }
 }
 
 impl Default for ControllerSettings {
@@ -102,7 +92,7 @@ impl Default for ControllerSettings {
     let deadzone = 0.0;
     let noise_tolerance = 0.0;
     let tickrate = Duration::from_millis(16);
-    let mouse_idle_timeout = tickrate * 3;
+    let mouse_idle_timeout = tickrate * 4;
     let left_stick_sensitivity = 10000.0;
     let right_stick_sensitivity = 3.0;
     let max_stick_tilt = 32767.0;
@@ -124,8 +114,6 @@ impl Default for ControllerSettings {
       tickrate,
       left_stick_sensitivity,
       right_stick_sensitivity,
-      minimum_tilt,
-      maximum_tilt,
       blend,
       mouse_idle_timeout,
       max_tilt_range,
