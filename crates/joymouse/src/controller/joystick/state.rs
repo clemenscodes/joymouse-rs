@@ -10,6 +10,7 @@ use crate::controller::{
 pub struct JoyStickState {
   x: f64,
   y: f64,
+  stable_angle: Option<f64>,
   up: State,
   down: State,
   left: State,
@@ -25,6 +26,7 @@ impl Default for JoyStickState {
     Self {
       x: Default::default(),
       y: Default::default(),
+      stable_angle: Default::default(),
       up: Default::default(),
       down: Default::default(),
       left: Default::default(),
@@ -46,14 +48,14 @@ impl JoyStickState {
     self.x += vector.dx() * sensitivity;
     self.y += vector.dy() * sensitivity;
 
-    let magnitude = ((self.x).powi(2) + (self.y).powi(2)).sqrt();
+    let magnitude = (self.x.powi(2) + self.y.powi(2)).sqrt();
     if magnitude > SETTINGS.max_stick_tilt() {
       let scale = SETTINGS.max_stick_tilt() / magnitude;
       self.x = (self.x * scale).round();
       self.y = (self.y * scale).round();
     }
 
-    Vector::new(self.x, self.y)
+    self.vector()
   }
 
   pub fn micro(&mut self, vector: Vector) -> Vector {
@@ -63,6 +65,13 @@ impl JoyStickState {
     self.mouse_events.push(vector);
 
     if elapsed >= SETTINGS.tickrate() {
+      self.tick_start = now;
+      self.last_event = now;
+
+      if self.mouse_events.len() < 4 {
+        return Vector::new(self.x, self.y);
+      }
+
       let (dx, dy) = self
         .mouse_events
         .iter()
@@ -80,60 +89,79 @@ impl JoyStickState {
       let max_tilt = SETTINGS.max_tilt_range();
       let tilt = min_tilt + (max_tilt - min_tilt) * normalized_speed;
 
-      let target_x = tilt * angle.cos();
-      let target_y = tilt * angle.sin();
+      let vector = Vector::new(tilt * angle.cos(), tilt * angle.sin());
 
-      self.update_smoothed_position(target_x, target_y, SETTINGS.blend());
+      self.update_smoothed_position(vector, SETTINGS.blend());
 
       self.mouse_events.clear();
-      self.tick_start = now;
-      self.last_event = now;
     }
 
     Vector::new(self.x, self.y)
   }
 
-  fn update_smoothed_position(&mut self, target_x: f64, target_y: f64, blend: f64) {
-    let target_mag = (target_x.powi(2) + target_y.powi(2)).sqrt();
+  fn update_smoothed_position(&mut self, vector: Vector, blend: f64) {
+    let prev = self.vector();
+
+    let x = (1.0 - blend) * prev.dx() + blend * vector.dx();
+    let y = (1.0 - blend) * prev.dy() + blend * vector.dy();
+    let mut current = Vector::new(x, y);
+
+    let raw_angle = current.dy().atan2(current.dx()).to_degrees();
+
+    let stable_angle = match self.stable_angle {
+      Some(prev_angle) => {
+        let delta = ((raw_angle - prev_angle + 180.0) % 360.0) - 180.0;
+        if delta.abs() < 2.0 {
+          prev_angle
+        } else {
+          self.stable_angle = Some(raw_angle);
+          raw_angle
+        }
+      }
+      None => {
+        self.stable_angle = Some(raw_angle);
+        raw_angle
+      }
+    };
+
+    let mag = (x.powi(2) + y.powi(2)).sqrt();
+    let angle_rad = stable_angle.to_radians();
+
     let min_tilt = SETTINGS.min_tilt_range();
 
-    if target_mag < min_tilt {
-      println!(
-        "[update_smoothed_position] Suppressed update: target too small ({:.2} < {:.2})",
-        target_mag, min_tilt
-      );
-      return;
+    let adjusted_mag = if mag > 0.0 && mag < min_tilt {
+      min_tilt
+    } else {
+      mag
+    };
+
+    let mut final_x = adjusted_mag * angle_rad.cos();
+    let mut final_y = adjusted_mag * angle_rad.sin();
+
+    let max_tilt = SETTINGS.max_stick_tilt();
+    let length = (final_x.powi(2) + final_y.powi(2)).sqrt();
+
+    if length > max_tilt {
+      let scale = max_tilt / length;
+      final_x *= scale;
+      final_y *= scale;
     }
 
-    let prev = Vector::new(self.x, self.y);
-
-    let blended_x = (1.0 - blend) * self.x + blend * target_x;
-    let blended_y = (1.0 - blend) * self.y + blend * target_y;
-
-    let current = Vector::new(blended_x.round(), blended_y.round());
+    current = Vector::new(final_x, final_y);
 
     let dot = prev.dx() * current.dx() + prev.dy() * current.dy();
-    if dot < 0.0 {
-      println!(
-        "[update_smoothed_position] Reversal: ({:.0},{:.0}) → ({:.0},{:.0})",
-        prev.dx(),
-        prev.dy(),
-        current.dx(),
-        current.dy()
-      );
-    }
 
-    let current_mag = (current.dx().powi(2) + current.dy().powi(2)).sqrt();
-    if current_mag < 1.0 && (prev.dx() != 0.0 || prev.dy() != 0.0) {
-      println!(
-        "[update_smoothed_position] Sudden stop at ({:.0},{:.0})",
-        current.dx(),
-        current.dy()
-      );
+    if dot < 0.0 {
+      return self.handle_reversal();
     }
 
     self.x = current.dx();
     self.y = current.dy();
+  }
+
+  fn handle_reversal(&mut self) {
+    self.x = -self.x;
+    self.y = -self.y;
   }
 
   pub fn update_direction(&mut self) {
@@ -185,6 +213,10 @@ impl JoyStickState {
 
   pub fn y(&self) -> f64 {
     self.y
+  }
+
+  pub fn vector(&self) -> Vector {
+    Vector::new(self.x, self.y)
   }
 
   pub fn last_event(&self) -> Instant {

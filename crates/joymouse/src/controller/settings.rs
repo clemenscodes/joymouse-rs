@@ -102,14 +102,14 @@ impl Default for ControllerSettings {
     let deadzone = 0.0;
     let noise_tolerance = 0.0;
     let tickrate = Duration::from_millis(16);
-    let mouse_idle_timeout = Duration::from_millis(120);
+    let mouse_idle_timeout = tickrate * 3;
     let left_stick_sensitivity = 10000.0;
-    let right_stick_sensitivity = 10.0;
+    let right_stick_sensitivity = 3.0;
     let max_stick_tilt = 32767.0;
     let min_stick_tilt = -32768.0;
-    let minimum_tilt = 0.4;
-    let maximum_tilt = 1.0;
-    let blend = 0.2;
+    let minimum_tilt = 0.40;
+    let maximum_tilt = 0.92;
+    let blend = 0.6;
     let max_tilt_range = max_stick_tilt * maximum_tilt;
     let min_tilt_range = max_stick_tilt * minimum_tilt;
     Self {
