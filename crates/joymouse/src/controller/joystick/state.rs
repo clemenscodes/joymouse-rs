@@ -8,8 +8,8 @@ use crate::controller::{
 
 #[derive(Debug)]
 pub struct JoyStickState {
-  x: i32,
-  y: i32,
+  x: f64,
+  y: f64,
   up: State,
   down: State,
   left: State,
@@ -46,46 +46,45 @@ impl JoyStickState {
     self.x += vector.dx() * sensitivity;
     self.y += vector.dy() * sensitivity;
 
-    let magnitude = ((self.x as f64).powi(2) + (self.y as f64).powi(2)).sqrt();
-    if magnitude > SETTINGS.max_stick_tilt() as f64 {
-      let scale = SETTINGS.max_stick_tilt() as f64 / magnitude;
-      self.x = (self.x as f64 * scale).round() as i32;
-      self.y = (self.y as f64 * scale).round() as i32;
+    let magnitude = ((self.x).powi(2) + (self.y).powi(2)).sqrt();
+    if magnitude > SETTINGS.max_stick_tilt() {
+      let scale = SETTINGS.max_stick_tilt() / magnitude;
+      self.x = (self.x * scale).round();
+      self.y = (self.y * scale).round();
     }
 
     Vector::new(self.x, self.y)
   }
 
   pub fn micro(&mut self, vector: Vector) -> Vector {
-    const BLEND: f64 = 0.2; // Smoothing factor (0.0 = none, 1.0 = slowest)
-
+    let blend = SETTINGS.blend();
     let now = Instant::now();
-    self.mouse_deltas.push((vector.dx() as f64, vector.dy() as f64));
+    self.mouse_deltas.push((vector.dx(), vector.dy()));
     let elapsed = now.duration_since(self.tick_start);
 
     if elapsed >= SETTINGS.tickrate() {
-      let (sum_dx, sum_dy): (f64, f64) = self
+      let (dx, dy) = self
         .mouse_deltas
         .iter()
         .copied()
         .fold((0.0, 0.0), |acc, (dx, dy)| (acc.0 + dx, acc.1 + dy));
 
-      let raw_speed = (sum_dx.powi(2) + sum_dy.powi(2)).sqrt();
+      let raw_speed = (dx.powi(2) + dy.powi(2)).sqrt();
       let sensitivity = SETTINGS.right_stick_sensitivity();
       let scaled_speed = raw_speed * sensitivity;
-      let angle = sum_dy.atan2(sum_dx);
+      let angle = dy.atan2(dx);
       let clamped_speed = scaled_speed.clamp(1.0, 100.0);
       let normalized_speed = (clamped_speed - 1.0) / 99.0;
 
-      let min_tilt = (SETTINGS.max_stick_tilt() as f64) * SETTINGS.minimum_tilt();
-      let max_tilt = (SETTINGS.max_stick_tilt() as f64) * SETTINGS.maximum_tilt();
+      let min_tilt = SETTINGS.min_tilt_range();
+      let max_tilt = SETTINGS.max_tilt_range();
       let tilt = min_tilt + (max_tilt - min_tilt) * normalized_speed;
 
       let target_x = tilt * angle.cos();
       let target_y = tilt * angle.sin();
 
-      self.x = ((1.0 - BLEND) * self.x as f64 + BLEND * target_x).round() as i32;
-      self.y = ((1.0 - BLEND) * self.y as f64 + BLEND * target_y).round() as i32;
+      self.x = ((1.0 - blend) * self.x + blend * target_x).round();
+      self.y = ((1.0 - blend) * self.y + blend * target_y).round();
 
       self.mouse_deltas.clear();
       self.tick_start = now;
@@ -138,11 +137,11 @@ impl JoyStickState {
     self.direction
   }
 
-  pub fn x(&self) -> i32 {
+  pub fn x(&self) -> f64 {
     self.x
   }
 
-  pub fn y(&self) -> i32 {
+  pub fn y(&self) -> f64 {
     self.y
   }
 
@@ -153,7 +152,7 @@ impl JoyStickState {
   pub fn is_idle(&self, timeout: Duration) -> bool {
     let now = Instant::now();
     let elapsed = now.duration_since(self.last_event());
-    elapsed > timeout && (self.x() != 0 || self.y() != 0)
+    elapsed > timeout && (self.x() != 0.0 || self.y() != 0.0)
   }
 
   pub fn handle_idle(&mut self) -> bool {

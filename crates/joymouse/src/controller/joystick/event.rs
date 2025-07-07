@@ -62,7 +62,7 @@ impl TryFrom<RelativeAxisEvent> for ControllerJoyStickEvent {
     let (code, value) = value.destructure();
     let joystick = JoyStick::try_from(code)?;
     let axis = JoyStickAxis::try_from(code)?;
-    let polarity = Polarity::try_from(value)?;
+    let polarity = Polarity::try_from(value as f64)?;
     let state = State::Pressed;
     Ok(Self::new(joystick, axis, polarity, state))
   }

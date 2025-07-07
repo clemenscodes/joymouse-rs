@@ -66,10 +66,10 @@ impl Controller {
 
     let axis_info = AbsInfo::new(
       0,
-      SETTINGS.min_stick_tilt(),
-      SETTINGS.max_stick_tilt(),
-      SETTINGS.noise_tolerance(),
-      SETTINGS.deadzone(),
+      SETTINGS.min_stick_tilt() as i32,
+      SETTINGS.max_stick_tilt() as i32,
+      SETTINGS.noise_tolerance() as i32,
+      SETTINGS.deadzone() as i32,
       0,
     );
     let x_axis = UinputAbsSetup::new(AbsoluteAxisCode::ABS_X, axis_info);
@@ -207,7 +207,7 @@ impl Controller {
   fn move_left_stick(&mut self, vector: Vector, direction: Option<Direction>) {
     let (x, y) = if let Some(direction) = direction {
       if direction == Direction::North {
-        (0, -vector.dy() * 2)
+        (0.0, -vector.dy() * 2.0)
       } else {
         (vector.dx(), -vector.dy())
       }
@@ -251,7 +251,7 @@ impl Controller {
     }
   }
 
-  fn get_stick_event(stick: JoyStick, axis: JoyStickAxis, value: i32) -> InputEvent {
+  fn get_stick_event(stick: JoyStick, axis: JoyStickAxis, value: f64) -> InputEvent {
     let code = match (stick, axis) {
       (JoyStick::Left, JoyStickAxis::X) => AbsoluteAxisCode::ABS_X,
       (JoyStick::Left, JoyStickAxis::Y) => AbsoluteAxisCode::ABS_Y,
@@ -259,7 +259,7 @@ impl Controller {
       (JoyStick::Right, JoyStickAxis::Y) => AbsoluteAxisCode::ABS_RY,
     };
 
-    InputEvent::new(EventType::ABSOLUTE.0, code.0, value)
+    InputEvent::new(EventType::ABSOLUTE.0, code.0, value as i32)
   }
 
   fn extract_input_number(phys: Option<&str>) -> Option<u32> {

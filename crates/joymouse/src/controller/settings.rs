@@ -8,93 +8,128 @@ pub struct ControllerSettings {
   vendor: u16,
   product: u16,
   version: u16,
-  max_stick_tilt: i32,
-  min_stick_tilt: i32,
-  deadzone: i32,
-  noise_tolerance: i32,
+  max_stick_tilt: f64,
+  min_stick_tilt: f64,
+  deadzone: f64,
+  noise_tolerance: f64,
   tickrate: Duration,
-  left_stick_sensitivity: i32,
+  left_stick_sensitivity: f64,
   right_stick_sensitivity: f64,
   minimum_tilt: f64,
   maximum_tilt: f64,
+  blend: f64,
   mouse_idle_timeout: Duration,
+  max_tilt_range: f64,
+  min_tilt_range: f64,
 }
 
 impl ControllerSettings {
-  pub fn name(&self) -> &'static str {
+  pub const fn name(&self) -> &'static str {
     self.name
   }
 
-  pub fn vendor(&self) -> u16 {
+  pub const fn vendor(&self) -> u16 {
     self.vendor
   }
 
-  pub fn product(&self) -> u16 {
+  pub const fn product(&self) -> u16 {
     self.product
   }
 
-  pub fn version(&self) -> u16 {
+  pub const fn version(&self) -> u16 {
     self.version
   }
 
-  pub fn max_stick_tilt(&self) -> i32 {
+  pub const fn max_stick_tilt(&self) -> f64 {
     self.max_stick_tilt
   }
 
-  pub fn min_stick_tilt(&self) -> i32 {
+  pub const fn min_stick_tilt(&self) -> f64 {
     self.min_stick_tilt
   }
 
-  pub fn deadzone(&self) -> i32 {
+  pub const fn deadzone(&self) -> f64 {
     self.deadzone
   }
 
-  pub fn noise_tolerance(&self) -> i32 {
+  pub const fn noise_tolerance(&self) -> f64 {
     self.noise_tolerance
   }
 
-  pub fn tickrate(&self) -> Duration {
+  pub const fn tickrate(&self) -> Duration {
     self.tickrate
   }
 
-  pub fn left_stick_sensitivity(&self) -> i32 {
+  pub const fn left_stick_sensitivity(&self) -> f64 {
     self.left_stick_sensitivity
   }
 
-  pub fn right_stick_sensitivity(&self) -> f64 {
+  pub const fn right_stick_sensitivity(&self) -> f64 {
     self.right_stick_sensitivity
   }
 
-  pub fn minimum_tilt(&self) -> f64 {
+  pub const fn blend(&self) -> f64 {
+    self.blend
+  }
+
+  pub const fn mouse_idle_timeout(&self) -> Duration {
+    self.mouse_idle_timeout
+  }
+
+  pub fn max_tilt_range(&self) -> f64 {
+    self.max_tilt_range
+  }
+
+  pub fn min_tilt_range(&self) -> f64 {
+    self.min_tilt_range
+  }
+
+  pub const fn minimum_tilt(&self) -> f64 {
     self.minimum_tilt
   }
 
-  pub fn maximum_tilt(&self) -> f64 {
+  pub const fn maximum_tilt(&self) -> f64 {
     self.maximum_tilt
-  }
-
-  pub fn mouse_idle_timeout(&self) -> Duration {
-    self.mouse_idle_timeout
   }
 }
 
 impl Default for ControllerSettings {
   fn default() -> Self {
+    let name = "JoyMouse";
+    let vendor = 0x1234;
+    let product = 0x5678;
+    let version = 0x0100;
+    let deadzone = 0.0;
+    let noise_tolerance = 0.0;
+    let tickrate = Duration::from_millis(16);
+    let mouse_idle_timeout = Duration::from_millis(120);
+    let left_stick_sensitivity = 10000.0;
+    let right_stick_sensitivity = 10.0;
+    let max_stick_tilt = 32767.0;
+    let min_stick_tilt = -32768.0;
+    let minimum_tilt = 0.4;
+    let maximum_tilt = 1.0;
+    let blend = 0.2;
+    let max_tilt_range = max_stick_tilt * maximum_tilt;
+    let min_tilt_range = max_stick_tilt * minimum_tilt;
     Self {
-      name: "JoyMouse",
-      vendor: 0x1234,
-      product: 0x5678,
-      version: 0x0100,
-      max_stick_tilt: 32767,
-      min_stick_tilt: -32768,
-      deadzone: 0,
-      noise_tolerance: 0,
-      tickrate: Duration::from_millis(16),
-      left_stick_sensitivity: 10000,
-      right_stick_sensitivity: 10.0,
-      minimum_tilt: 0.40,
-      maximum_tilt: 1.0,
-      mouse_idle_timeout: Duration::from_millis(120),
+      name,
+      vendor,
+      product,
+      version,
+      max_stick_tilt,
+      min_stick_tilt,
+      deadzone,
+      noise_tolerance,
+      tickrate,
+      left_stick_sensitivity,
+      right_stick_sensitivity,
+      minimum_tilt,
+      maximum_tilt,
+      blend,
+      mouse_idle_timeout,
+      max_tilt_range,
+      min_tilt_range,
     }
   }
 }
