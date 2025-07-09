@@ -94,7 +94,7 @@ impl Default for ControllerSettings {
     let tickrate = Duration::from_millis(16);
     let mouse_idle_timeout = tickrate * 4;
     let left_stick_sensitivity = 10000.0;
-    let right_stick_sensitivity = 3.0;
+    let right_stick_sensitivity = 5.0;
     let max_stick_tilt = 32767.0;
     let min_stick_tilt = -32768.0;
     let minimum_tilt = 0.4;
