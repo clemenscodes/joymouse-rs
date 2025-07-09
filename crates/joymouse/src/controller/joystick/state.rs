@@ -1,4 +1,4 @@
-use std::time::{Duration, Instant};
+use std::time::Instant;
 
 use crate::controller::{
   joystick::{direction::Direction, motion::Motion, vector::Vector},
@@ -104,6 +104,10 @@ impl JoyStickState {
       if self.motion == Motion::Flick {
         return self.commit(now);
       }
+
+      if self.motion == Motion::Micro {
+        self.last_event = now;
+      }
     }
 
     if elapsed >= SETTINGS.tickrate() {
@@ -137,7 +141,7 @@ impl JoyStickState {
     let tilt = min_tilt + (max_tilt - min_tilt) * normalized_speed;
 
     let diagonal_boost = if dx.abs() > 0.0 && dy.abs() > 0.0 {
-      1.15
+      1.41
     } else {
       1.0
     };
@@ -168,7 +172,7 @@ impl JoyStickState {
     let angle = match self.angle {
       Some(prev_angle) => {
         let delta = ((angle - prev_angle + 180.0) % 360.0) - 180.0;
-        if delta.abs() < 0.01 {
+        if delta.abs() < 0.5 {
           prev_angle
         } else {
           self.angle = Some(angle);
@@ -187,7 +191,7 @@ impl JoyStickState {
     let last_mag = (prev.dx().powi(2) + prev.dy().powi(2)).sqrt();
     let speed_delta = (mag - last_mag).abs();
 
-    let stable_mag = if speed_delta < 100.0 {
+    let stable_mag = if speed_delta < 200.0 {
       last_mag
     } else {
       mag
@@ -275,9 +279,8 @@ impl JoyStickState {
 
   pub fn is_idle(&self) -> bool {
     let now = Instant::now();
-    let timeout = Duration::from(self.motion);
     let elapsed = now.duration_since(self.last_event());
-    elapsed > timeout && (self.x() != 0.0 || self.y() != 0.0)
+    elapsed > SETTINGS.mouse_idle_timeout() && (self.x() != 0.0 || self.y() != 0.0)
   }
 
   pub fn handle_idle(&mut self) -> bool {

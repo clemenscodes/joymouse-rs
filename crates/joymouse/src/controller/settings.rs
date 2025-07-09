@@ -92,7 +92,7 @@ impl Default for ControllerSettings {
     let deadzone = 0.0;
     let noise_tolerance = 0.0;
     let tickrate = Duration::from_millis(16);
-    let mouse_idle_timeout = Duration::from_millis(100);
+    let mouse_idle_timeout = tickrate * 4;
     let left_stick_sensitivity = 10000.0;
     let right_stick_sensitivity = 3.0;
     let max_stick_tilt = 32767.0;
