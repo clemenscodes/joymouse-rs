@@ -5,12 +5,9 @@ mod joystick;
 mod settings;
 mod state;
 
-use crate::{
-  controller::{
-    joystick::{Direction, JoyStick, JoyStickAxis, JoyStickState},
-    settings::SETTINGS,
-  },
-  mouse::Mouse,
+use crate::controller::{
+  joystick::{Direction, JoyStick, JoyStickAxis, JoyStickState},
+  settings::SETTINGS,
 };
 
 use std::{
@@ -27,7 +24,6 @@ use evdev::{
 
 #[derive(Debug)]
 pub struct Controller {
-  mouse: Mouse,
   virtual_device: VirtualDevice,
   left_stick: Arc<Mutex<JoyStickState>>,
   right_stick: Arc<Mutex<JoyStickState>>,
@@ -87,10 +83,7 @@ impl Controller {
       .with_absolute_axis(&ry_axis)?
       .build()?;
 
-    let mouse = Mouse::try_create()?;
-
     Ok(Self {
-      mouse,
       virtual_device,
       left_stick: Arc::new(Mutex::new(JoyStickState::default())),
       right_stick: Arc::new(Mutex::new(JoyStickState::default())),
@@ -112,8 +105,6 @@ impl Controller {
     keyboard: Arc<Mutex<Device>>,
     controller: Arc<Mutex<Self>>,
   ) {
-    mouse.lock().unwrap().grab().unwrap();
-
     let epoll_fd = Self::create_epoll_fd();
 
     let devices = [mouse, keyboard];
@@ -136,9 +127,9 @@ impl Controller {
 
         if let Some(device) = fd_map.get(&fd) {
           let mut device = device.lock().unwrap();
-          for original in device.fetch_events().unwrap() {
-            if let Ok(event) = ControllerEvent::try_from(original.destructure()) {
-              controller.lock().unwrap().handle_event(event, original);
+          for event in device.fetch_events().unwrap() {
+            if let Ok(event) = ControllerEvent::try_from(event.destructure()) {
+              controller.lock().unwrap().handle_event(event);
             }
           }
         }
@@ -146,15 +137,11 @@ impl Controller {
     }
   }
 
-  fn handle_event(&mut self, event: ControllerEvent, original: InputEvent) {
+  fn handle_event(&mut self, event: ControllerEvent) {
     match event {
-      ControllerEvent::Button(event) => self.handle_button_event(event, original),
-      ControllerEvent::JoyStick(event) => self.handle_joystick_event(event, original),
+      ControllerEvent::Button(event) => self.handle_button_event(event),
+      ControllerEvent::JoyStick(event) => self.handle_joystick_event(event),
     }
-  }
-
-  fn mouse_mut(&mut self) -> &mut Mouse {
-    &mut self.mouse
   }
 
   fn virtual_device_mut(&mut self) -> &mut VirtualDevice {
