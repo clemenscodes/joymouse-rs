@@ -10,12 +10,12 @@ use crate::controller::{
 pub struct JoyStickState {
   x: f64,
   y: f64,
-  stable_angle: Option<f64>,
   up: State,
   down: State,
   left: State,
   right: State,
   direction: Option<Direction>,
+  angle: Option<f64>,
   last_event: Instant,
   tick_start: Instant,
   mouse_events: Vec<Vector>,
@@ -26,12 +26,12 @@ impl Default for JoyStickState {
     Self {
       x: Default::default(),
       y: Default::default(),
-      stable_angle: Default::default(),
       up: Default::default(),
       down: Default::default(),
       left: Default::default(),
       right: Default::default(),
       direction: Default::default(),
+      angle: Default::default(),
       last_event: Instant::now(),
       tick_start: Instant::now(),
       mouse_events: Default::default(),
@@ -68,7 +68,7 @@ impl JoyStickState {
       self.tick_start = now;
       self.last_event = now;
 
-      if self.mouse_events.len() < 4 {
+      if self.mouse_events.len() < 2 {
         return Vector::new(self.x, self.y);
       }
 
@@ -89,7 +89,16 @@ impl JoyStickState {
       let max_tilt = SETTINGS.max_tilt_range();
       let tilt = min_tilt + (max_tilt - min_tilt) * normalized_speed;
 
-      let vector = Vector::new(tilt * angle.cos(), tilt * angle.sin());
+      let diagonal_boost = if dx.abs() > 0.0 && dy.abs() > 0.0 {
+        1.15
+      } else {
+        1.0
+      };
+
+      let x = tilt * angle.cos() * diagonal_boost;
+      let y = tilt * angle.sin() * diagonal_boost;
+
+      let vector = Vector::new(x, y);
 
       self.update_smoothed_position(vector, SETTINGS.blend());
 
@@ -101,44 +110,51 @@ impl JoyStickState {
 
   fn update_smoothed_position(&mut self, vector: Vector, blend: f64) {
     let prev = self.vector();
+    let min_tilt = SETTINGS.min_tilt_range();
+    let max_tilt = SETTINGS.max_stick_tilt();
 
     let x = (1.0 - blend) * prev.dx() + blend * vector.dx();
     let y = (1.0 - blend) * prev.dy() + blend * vector.dy();
-    let mut current = Vector::new(x, y);
 
-    let raw_angle = current.dy().atan2(current.dx()).to_degrees();
+    let angle = y.atan2(x).to_degrees();
 
-    let stable_angle = match self.stable_angle {
+    let angle = match self.angle {
       Some(prev_angle) => {
-        let delta = ((raw_angle - prev_angle + 180.0) % 360.0) - 180.0;
-        if delta.abs() < 2.0 {
+        let delta = ((angle - prev_angle + 180.0) % 360.0) - 180.0;
+        if delta.abs() < 0.01 {
           prev_angle
         } else {
-          self.stable_angle = Some(raw_angle);
-          raw_angle
+          self.angle = Some(angle);
+          angle
         }
       }
       None => {
-        self.stable_angle = Some(raw_angle);
-        raw_angle
+        self.angle = Some(angle);
+        angle
       }
     };
 
     let mag = (x.powi(2) + y.powi(2)).sqrt();
-    let angle_rad = stable_angle.to_radians();
+    let angle_rad = angle.to_radians();
 
-    let min_tilt = SETTINGS.min_tilt_range();
+    let last_mag = (prev.dx().powi(2) + prev.dy().powi(2)).sqrt();
+    let speed_delta = (mag - last_mag).abs();
 
-    let adjusted_mag = if mag > 0.0 && mag < min_tilt {
-      min_tilt
+    let stable_mag = if speed_delta < 100.0 {
+      last_mag
     } else {
       mag
+    };
+
+    let adjusted_mag = if stable_mag < min_tilt && stable_mag > 0.001 {
+      min_tilt
+    } else {
+      stable_mag
     };
 
     let mut final_x = adjusted_mag * angle_rad.cos();
     let mut final_y = adjusted_mag * angle_rad.sin();
 
-    let max_tilt = SETTINGS.max_stick_tilt();
     let length = (final_x.powi(2) + final_y.powi(2)).sqrt();
 
     if length > max_tilt {
@@ -147,21 +163,8 @@ impl JoyStickState {
       final_y *= scale;
     }
 
-    current = Vector::new(final_x, final_y);
-
-    let dot = prev.dx() * current.dx() + prev.dy() * current.dy();
-
-    if dot < 0.0 {
-      return self.handle_reversal();
-    }
-
-    self.x = current.dx();
-    self.y = current.dy();
-  }
-
-  fn handle_reversal(&mut self) {
-    self.x = -self.x;
-    self.y = -self.y;
+    self.x = final_x;
+    self.y = final_y;
   }
 
   pub fn update_direction(&mut self) {

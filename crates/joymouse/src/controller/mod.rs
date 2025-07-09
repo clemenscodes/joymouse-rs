@@ -233,6 +233,7 @@ impl Controller {
   }
 
   fn center_right_stick(&mut self) {
+    self.right_stick_mut().lock().unwrap().recenter();
     self.move_right_stick(Vector::default());
   }
 
