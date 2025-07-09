@@ -7,6 +7,7 @@ mod keys;
 mod polarity;
 mod state;
 mod vector;
+mod motion;
 
 use evdev::{KeyCode, KeyEvent, RelativeAxisCode, RelativeAxisEvent};
 

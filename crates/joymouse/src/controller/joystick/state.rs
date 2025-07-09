@@ -1,7 +1,7 @@
 use std::time::{Duration, Instant};
 
 use crate::controller::{
-  joystick::{direction::Direction, vector::Vector},
+  joystick::{direction::Direction, motion::Motion, vector::Vector},
   settings::SETTINGS,
   state::State,
 };
@@ -15,6 +15,8 @@ pub struct JoyStickState {
   left: State,
   right: State,
   direction: Option<Direction>,
+  motion: Motion,
+  motion_history: Vec<f64>, // last N normalized speeds
   angle: Option<f64>,
   last_event: Instant,
   tick_start: Instant,
@@ -31,6 +33,8 @@ impl Default for JoyStickState {
       left: Default::default(),
       right: Default::default(),
       direction: Default::default(),
+      motion: Default::default(),
+      motion_history: Default::default(),
       angle: Default::default(),
       last_event: Instant::now(),
       tick_start: Instant::now(),
@@ -64,6 +68,40 @@ impl JoyStickState {
 
     self.mouse_events.push(vector);
 
+    if self.mouse_events.len() >= 2 {
+      let (sum_dx, sum_dy) = self
+        .mouse_events
+        .iter()
+        .copied()
+        .fold((0.0, 0.0), |(dx_sum, dy_sum), v| (dx_sum + v.dx(), dy_sum + v.dy()));
+
+      let raw_speed = (sum_dx.powi(2) + sum_dy.powi(2)).sqrt();
+      let scaled_speed = raw_speed * SETTINGS.right_stick_sensitivity();
+      let clamped_speed = scaled_speed.clamp(1.0, 500.0);
+      let normalized_speed = (clamped_speed - 1.0) / 499.0;
+
+      self.motion_history.push(normalized_speed);
+
+      if self.motion_history.len() > 5 {
+        self.motion_history.remove(0);
+      }
+
+      let avg_speed: f64 =
+        self.motion_history.iter().copied().sum::<f64>() / self.motion_history.len() as f64;
+
+      let motion = match avg_speed {
+        s if s >= 0.5 => Motion::Flick,
+        s if s >= 0.025 => Motion::Macro,
+        _ => Motion::Micro,
+      };
+
+      self.motion = match (self.motion, motion) {
+        (Motion::Macro, Motion::Micro) if avg_speed > 0.015 => Motion::Macro,
+        (Motion::Micro, Motion::Macro) if avg_speed < 0.03 => Motion::Micro,
+        (_, motion) => motion,
+      };
+    }
+
     if elapsed >= SETTINGS.tickrate() {
       self.tick_start = now;
       self.last_event = now;
@@ -81,10 +119,8 @@ impl JoyStickState {
       let raw_speed = (dx.powi(2) + dy.powi(2)).sqrt();
       let sensitivity = SETTINGS.right_stick_sensitivity();
       let scaled_speed = raw_speed * sensitivity;
-      let angle = dy.atan2(dx);
-      let clamped_speed = scaled_speed.clamp(1.0, 100.0);
-      let normalized_speed = (clamped_speed - 1.0) / 99.0;
-
+      let clamped_speed = scaled_speed.clamp(1.0, 500.0);
+      let normalized_speed = (clamped_speed - 1.0) / 499.0;
       let min_tilt = SETTINGS.min_tilt_range();
       let max_tilt = SETTINGS.max_tilt_range();
       let tilt = min_tilt + (max_tilt - min_tilt) * normalized_speed;
@@ -95,6 +131,7 @@ impl JoyStickState {
         1.0
       };
 
+      let angle = dy.atan2(dx);
       let x = tilt * angle.cos() * diagonal_boost;
       let y = tilt * angle.sin() * diagonal_boost;
 
@@ -226,14 +263,15 @@ impl JoyStickState {
     self.last_event
   }
 
-  pub fn is_idle(&self, timeout: Duration) -> bool {
+  pub fn is_idle(&self) -> bool {
     let now = Instant::now();
+    let timeout = Duration::from(self.motion);
     let elapsed = now.duration_since(self.last_event());
     elapsed > timeout && (self.x() != 0.0 || self.y() != 0.0)
   }
 
   pub fn handle_idle(&mut self) -> bool {
-    if self.is_idle(SETTINGS.mouse_idle_timeout()) {
+    if self.is_idle() {
       self.recenter();
       return true;
     }
