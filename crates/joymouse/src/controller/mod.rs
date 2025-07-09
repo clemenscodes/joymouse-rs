@@ -5,15 +5,9 @@ mod joystick;
 mod settings;
 mod state;
 
-use crate::{
-  controller::{
-    joystick::{Direction, JoyStick, JoyStickAxis, JoyStickState},
-    settings::{
-      DEADZONE, LEFT_STICK_SENSITIVITY, MAX_STICK_TILT, MIN_STICK_TILT, NAME, NOISE_TOLERANCE,
-      PRODUCT, TICKRATE, VENDOR, VERSION,
-    },
-  },
-  mouse::Mouse,
+use crate::controller::{
+  joystick::{Direction, JoyStick, JoyStickAxis, JoyStickState},
+  settings::SETTINGS,
 };
 
 use std::{
@@ -30,7 +24,6 @@ use evdev::{
 
 #[derive(Debug)]
 pub struct Controller {
-  mouse: Mouse,
   virtual_device: VirtualDevice,
   left_stick: Arc<Mutex<JoyStickState>>,
   right_stick: Arc<Mutex<JoyStickState>>,
@@ -39,7 +32,8 @@ pub struct Controller {
 impl Controller {
   pub fn try_create() -> Result<Self, Box<dyn std::error::Error>> {
     let builder = VirtualDevice::builder()?;
-    let input_id = InputId::new(BusType::BUS_USB, VENDOR, PRODUCT, VERSION);
+    let input_id =
+      InputId::new(BusType::BUS_USB, SETTINGS.vendor(), SETTINGS.product(), SETTINGS.version());
     let mut button_set = AttributeSet::<KeyCode>::new();
 
     let buttons = [
@@ -66,14 +60,21 @@ impl Controller {
       button_set.insert(button);
     }
 
-    let axis_info = AbsInfo::new(0, MIN_STICK_TILT, MAX_STICK_TILT, NOISE_TOLERANCE, DEADZONE, 0);
+    let axis_info = AbsInfo::new(
+      0,
+      SETTINGS.min_stick_tilt() as i32,
+      SETTINGS.max_stick_tilt() as i32,
+      SETTINGS.noise_tolerance() as i32,
+      SETTINGS.deadzone() as i32,
+      0,
+    );
     let x_axis = UinputAbsSetup::new(AbsoluteAxisCode::ABS_X, axis_info);
     let y_axis = UinputAbsSetup::new(AbsoluteAxisCode::ABS_Y, axis_info);
     let rx_axis = UinputAbsSetup::new(AbsoluteAxisCode::ABS_RX, axis_info);
     let ry_axis = UinputAbsSetup::new(AbsoluteAxisCode::ABS_RY, axis_info);
 
     let virtual_device = builder
-      .name(&NAME)
+      .name(SETTINGS.name())
       .input_id(input_id)
       .with_keys(&button_set)?
       .with_absolute_axis(&x_axis)?
@@ -82,10 +83,7 @@ impl Controller {
       .with_absolute_axis(&ry_axis)?
       .build()?;
 
-    let mouse = Mouse::try_create()?;
-
     Ok(Self {
-      mouse,
       virtual_device,
       left_stick: Arc::new(Mutex::new(JoyStickState::default())),
       right_stick: Arc::new(Mutex::new(JoyStickState::default())),
@@ -107,8 +105,6 @@ impl Controller {
     keyboard: Arc<Mutex<Device>>,
     controller: Arc<Mutex<Self>>,
   ) {
-    mouse.lock().unwrap().grab().unwrap();
-
     let epoll_fd = Self::create_epoll_fd();
 
     let devices = [mouse, keyboard];
@@ -131,9 +127,9 @@ impl Controller {
 
         if let Some(device) = fd_map.get(&fd) {
           let mut device = device.lock().unwrap();
-          for original in device.fetch_events().unwrap() {
-            if let Ok(event) = ControllerEvent::try_from(original.destructure()) {
-              controller.lock().unwrap().handle_event(event, original);
+          for event in device.fetch_events().unwrap() {
+            if let Ok(event) = ControllerEvent::try_from(event.destructure()) {
+              controller.lock().unwrap().handle_event(event);
             }
           }
         }
@@ -141,15 +137,11 @@ impl Controller {
     }
   }
 
-  fn handle_event(&mut self, event: ControllerEvent, original: InputEvent) {
+  fn handle_event(&mut self, event: ControllerEvent) {
     match event {
-      ControllerEvent::Button(event) => self.handle_button_event(event, original),
-      ControllerEvent::JoyStick(event) => self.handle_joystick_event(event, original),
+      ControllerEvent::Button(event) => self.handle_button_event(event),
+      ControllerEvent::JoyStick(event) => self.handle_joystick_event(event),
     }
-  }
-
-  fn mouse_mut(&mut self) -> &mut Mouse {
-    &mut self.mouse
   }
 
   fn virtual_device_mut(&mut self) -> &mut VirtualDevice {
@@ -184,7 +176,7 @@ impl Controller {
     };
 
     if let Some(direction) = maybe_direction {
-      let vector = Vector::from(direction) * LEFT_STICK_SENSITIVITY;
+      let vector = Vector::from(direction) * SETTINGS.left_stick_sensitivity();
 
       let (x, y) = {
         let mut stick = self.left_stick_mut().lock().unwrap();
@@ -202,7 +194,7 @@ impl Controller {
   fn move_left_stick(&mut self, vector: Vector, direction: Option<Direction>) {
     let (x, y) = if let Some(direction) = direction {
       if direction == Direction::North {
-        (0, -vector.dy() * 2)
+        (0.0, -vector.dy() * 2.0)
       } else {
         (vector.dx(), -vector.dy())
       }
@@ -228,6 +220,7 @@ impl Controller {
   }
 
   fn center_right_stick(&mut self) {
+    self.right_stick_mut().lock().unwrap().recenter();
     self.move_right_stick(Vector::default());
   }
 
@@ -236,7 +229,7 @@ impl Controller {
       {
         controller.lock().unwrap().handle_right_stick();
       }
-      std::thread::sleep(TICKRATE);
+      std::thread::sleep(SETTINGS.tickrate());
     }
   }
 
@@ -246,7 +239,7 @@ impl Controller {
     }
   }
 
-  fn get_stick_event(stick: JoyStick, axis: JoyStickAxis, value: i32) -> InputEvent {
+  fn get_stick_event(stick: JoyStick, axis: JoyStickAxis, value: f64) -> InputEvent {
     let code = match (stick, axis) {
       (JoyStick::Left, JoyStickAxis::X) => AbsoluteAxisCode::ABS_X,
       (JoyStick::Left, JoyStickAxis::Y) => AbsoluteAxisCode::ABS_Y,
@@ -254,7 +247,7 @@ impl Controller {
       (JoyStick::Right, JoyStickAxis::Y) => AbsoluteAxisCode::ABS_RY,
     };
 
-    InputEvent::new(EventType::ABSOLUTE.0, code.0, value)
+    InputEvent::new(EventType::ABSOLUTE.0, code.0, value as i32)
   }
 
   fn extract_input_number(phys: Option<&str>) -> Option<u32> {

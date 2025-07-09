@@ -1,5 +1,3 @@
-use evdev::InputEvent;
-
 use crate::controller::{
   Controller,
   joystick::{
@@ -9,7 +7,7 @@ use crate::controller::{
 };
 
 impl Controller {
-  pub fn handle_joystick_event(&mut self, event: ControllerJoyStickEvent, original: InputEvent) {
+  pub fn handle_joystick_event(&mut self, event: ControllerJoyStickEvent) {
     let joystick = event.joystick();
     let axis = event.axis();
     let polarity = event.polarity();
@@ -17,8 +15,6 @@ impl Controller {
 
     if *joystick == JoyStick::Left {
       self.update_left_stick_direction(axis, polarity, state);
-    } else {
-      self.mouse_mut().emit(original);
     }
 
     let direction = self.left_stick.lock().unwrap().direction();
