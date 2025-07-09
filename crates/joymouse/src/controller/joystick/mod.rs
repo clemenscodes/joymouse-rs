@@ -4,10 +4,10 @@ mod direction;
 mod error;
 mod event;
 mod keys;
+mod motion;
 mod polarity;
 mod state;
 mod vector;
-mod motion;
 
 use evdev::{KeyCode, KeyEvent, RelativeAxisCode, RelativeAxisEvent};
 
