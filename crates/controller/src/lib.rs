@@ -193,7 +193,7 @@ impl Controller {
       {
         controller.lock().unwrap().handle_left_stick();
       }
-      std::thread::sleep(SETTINGS.tickrate());
+      std::thread::sleep(std::time::Duration::from_millis(1));
     }
   }
 
@@ -260,7 +260,8 @@ impl Controller {
   }
 
   fn handle_right_stick(&mut self) {
-    if self.right_stick_mut().lock().unwrap().handle_idle() {
+    let left_stick_direction = { self.left_stick.lock().unwrap().direction() };
+    if self.right_stick_mut().lock().unwrap().handle_idle(left_stick_direction) {
       self.center_right_stick();
     }
   }
