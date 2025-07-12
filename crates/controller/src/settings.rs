@@ -1,4 +1,4 @@
-use crate::controller::button::ControllerButton;
+use crate::button::ControllerButton;
 use evdev::KeyCode;
 use std::{collections::HashMap, sync::LazyLock, time::Duration};
 
@@ -19,6 +19,18 @@ pub struct ControllerSettings {
   mouse_idle_timeout: Duration,
   max_tilt_range: f64,
   min_tilt_range: f64,
+  motion_flick_threshold: f64,
+  motion_macro_threshold: f64,
+  motion_macro_sticky_lower: f64,
+  motion_micro_sticky_upper: f64,
+  max_motion_history: usize,
+  speed_clamp_min: f64,
+  speed_clamp_max: f64,
+  speed_normalizer: f64,
+  diagonal_boost: f64,
+  angle_smooth_threshold: f64,
+  speed_delta_threshold: f64,
+  stable_mag_lower_bound: f64,
 }
 
 impl ControllerSettings {
@@ -81,6 +93,54 @@ impl ControllerSettings {
   pub fn min_tilt_range(&self) -> f64 {
     self.min_tilt_range
   }
+
+  pub const fn motion_flick_threshold(&self) -> f64 {
+    self.motion_flick_threshold
+  }
+
+  pub const fn motion_macro_threshold(&self) -> f64 {
+    self.motion_macro_threshold
+  }
+
+  pub const fn motion_macro_sticky_lower(&self) -> f64 {
+    self.motion_macro_sticky_lower
+  }
+
+  pub const fn motion_micro_sticky_upper(&self) -> f64 {
+    self.motion_micro_sticky_upper
+  }
+
+  pub const fn max_motion_history(&self) -> usize {
+    self.max_motion_history
+  }
+
+  pub const fn speed_clamp_min(&self) -> f64 {
+    self.speed_clamp_min
+  }
+
+  pub const fn speed_clamp_max(&self) -> f64 {
+    self.speed_clamp_max
+  }
+
+  pub const fn speed_normalizer(&self) -> f64 {
+    self.speed_normalizer
+  }
+
+  pub const fn diagonal_boost(&self) -> f64 {
+    self.diagonal_boost
+  }
+
+  pub const fn angle_smooth_threshold(&self) -> f64 {
+    self.angle_smooth_threshold
+  }
+
+  pub const fn speed_delta_threshold(&self) -> f64 {
+    self.speed_delta_threshold
+  }
+
+  pub const fn stable_mag_lower_bound(&self) -> f64 {
+    self.stable_mag_lower_bound
+  }
 }
 
 impl Default for ControllerSettings {
@@ -102,6 +162,18 @@ impl Default for ControllerSettings {
     let blend = 0.2;
     let max_tilt_range = max_stick_tilt * maximum_tilt;
     let min_tilt_range = max_stick_tilt * minimum_tilt;
+    let motion_flick_threshold = 0.5;
+    let motion_macro_threshold = 0.025;
+    let motion_macro_sticky_lower = 0.01;
+    let motion_micro_sticky_upper = 0.03;
+    let max_motion_history = 5;
+    let speed_clamp_min = 1.0;
+    let speed_clamp_max = 500.0;
+    let speed_normalizer = speed_clamp_max - speed_clamp_min;
+    let diagonal_boost = 1.41;
+    let angle_smooth_threshold = 0.5;
+    let speed_delta_threshold = 200.0;
+    let stable_mag_lower_bound = 0.001;
     Self {
       name,
       vendor,
@@ -118,6 +190,18 @@ impl Default for ControllerSettings {
       mouse_idle_timeout,
       max_tilt_range,
       min_tilt_range,
+      motion_flick_threshold,
+      motion_macro_threshold,
+      motion_macro_sticky_lower,
+      motion_micro_sticky_upper,
+      max_motion_history,
+      speed_clamp_min,
+      speed_clamp_max,
+      speed_normalizer,
+      diagonal_boost,
+      angle_smooth_threshold,
+      speed_delta_threshold,
+      stable_mag_lower_bound,
     }
   }
 }

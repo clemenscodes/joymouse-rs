@@ -1,6 +1,6 @@
 use evdev::{EventType, InputEvent, KeyCode, KeyEvent};
 
-use crate::controller::{
+use crate::{
   button::{ButtonError, ControllerButton},
   state::State,
 };

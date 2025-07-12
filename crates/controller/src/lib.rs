@@ -5,7 +5,7 @@ mod joystick;
 mod settings;
 mod state;
 
-use crate::controller::{
+use crate::{
   event::ControllerEvent,
   joystick::{Direction, JoyStick, JoyStickAxis, JoyStickState, Vector},
   settings::SETTINGS,

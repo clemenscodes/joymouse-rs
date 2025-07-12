@@ -6,5 +6,4 @@ license = "MIT"
 authors = ["Clemens Horn <me@clemenshorn.com>"]
 
 [dependencies]
-epoll = "4.3.3"
-evdev = "0.13.1"
+controller = { path = "../controller" }

@@ -1,6 +1,6 @@
 use evdev::{KeyCode, RelativeAxisCode};
 
-use crate::controller::{
+use crate::{
   button::ButtonError,
   joystick::{AxisError, polarity::PolarityError},
   state::StateError,

@@ -33,6 +33,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "613afe47fcd5fac7ccf1db93babcb082c5994d996f20b8b159f2ad1658eb5724"
 
 [[package]]
+name = "controller"
+version = "0.1.0"
+dependencies = [
+ "epoll",
+ "evdev",
+]
+
+[[package]]
 name = "epoll"
 version = "4.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -64,8 +72,7 @@ checksum = "e6d5a32815ae3f33302d95fdcb2ce17862f8c65363dcfd29360480ba1001fc9c"
 name = "joymouse"
 version = "0.1.0"
 dependencies = [
- "epoll",
- "evdev",
+ "controller",
 ]
 
 [[package]]

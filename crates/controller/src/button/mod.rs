@@ -2,7 +2,7 @@ mod control;
 mod error;
 mod event;
 
-use crate::controller::settings::CONTROLLER_KEY_MAP;
+use crate::settings::CONTROLLER_KEY_MAP;
 
 use evdev::KeyCode;
 
