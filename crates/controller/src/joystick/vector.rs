@@ -1,6 +1,4 @@
-use crate::{
-  joystick::{axis::JoyStickAxis, direction::Direction, polarity::Polarity, JoyStick},
-};
+use crate::joystick::{axis::JoyStickAxis, direction::Direction, polarity::Polarity, JoyStick};
 
 use config::SETTINGS;
 
