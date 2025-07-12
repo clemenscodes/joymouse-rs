@@ -44,40 +44,57 @@ impl Default for JoyStickState {
 }
 
 impl JoyStickState {
-  pub fn is_centered(&self) -> bool {
-    self.x() == 0.0 && self.y() == 0.0
-  }
-
-  pub fn recenter(&mut self) {
-    *self = Self::default();
-  }
-
   pub fn tilt(&mut self, vector: Vector) -> Vector {
-    let sensitivity = SETTINGS.left_stick_sensitivity();
     self.last_event = Instant::now();
+
+    let sensitivity = SETTINGS.left_stick_sensitivity();
+
     self.x += vector.dx() * sensitivity;
     self.y += vector.dy() * sensitivity;
-    self.clamp_tilt();
+
+    let magnitude = (self.x.powi(2) + self.y.powi(2)).sqrt();
+    if magnitude > SETTINGS.max_stick_tilt() {
+      let scale = SETTINGS.max_stick_tilt() / magnitude;
+      self.x = (self.x * scale).round();
+      self.y = (self.y * scale).round();
+    }
+
     self.vector()
   }
 
   pub fn micro(&mut self, vector: Vector) -> Vector {
     let now = Instant::now();
     let elapsed = now.duration_since(self.tick_start);
+
     self.mouse_events.push(vector);
 
     if self.mouse_events.len() >= 2 {
       let vector = Vector::sum(&self.mouse_events);
-      let speed = speed(vector, SETTINGS.right_stick_sensitivity());
+      let raw_speed = (vector.dx().powi(2) + vector.dy().powi(2)).sqrt();
+      let scaled_speed = raw_speed * SETTINGS.right_stick_sensitivity();
+      let clamped_speed = scaled_speed.clamp(1.0, 500.0);
+      let normalized_speed = (clamped_speed - 1.0) / 499.0;
 
-      self.motion_history.push(speed);
-      if self.motion_history.len() > SETTINGS.max_motion_history() {
+      self.motion_history.push(normalized_speed);
+
+      if self.motion_history.len() > 5 {
         self.motion_history.remove(0);
       }
 
-      let avg = average(&self.motion_history);
-      let motion = Motion::resolve(avg);
-      self.motion = Motion::compare(avg, self.motion, motion);
+      let avg_speed: f64 =
+        self.motion_history.iter().copied().sum::<f64>() / self.motion_history.len() as f64;
+
+      let motion = match avg_speed {
+        s if s >= 0.5 => Motion::Flick,
+        s if s >= 0.025 => Motion::Macro,
+        _ => Motion::Micro,
+      };
+
+      self.motion = match (self.motion, motion) {
+        (Motion::Macro, Motion::Micro) if avg_speed > 0.01 => Motion::Macro,
+        (Motion::Micro, Motion::Macro) if avg_speed < 0.03 => Motion::Micro,
+        (_, motion) => motion,
+      };
 
       if self.motion == Motion::Flick {
         return self.commit(now);
@@ -92,7 +109,7 @@ impl JoyStickState {
       return self.commit(now);
     }
 
-    self.vector()
+    Vector::new(self.x, self.y)
   }
 
   fn commit(&mut self, now: Instant) -> Vector {
@@ -100,66 +117,95 @@ impl JoyStickState {
     self.last_event = now;
 
     if self.mouse_events.len() < 2 {
-      return self.vector();
+      return Vector::new(self.x, self.y);
     }
 
     let vector = Vector::sum(&self.mouse_events);
-    let angle = vector.dy().atan2(vector.dx());
-    let speed = speed(vector, SETTINGS.right_stick_sensitivity());
-    let min = SETTINGS.min_tilt_range();
-    let max = SETTINGS.max_tilt_range();
-    let tilt = min + (max - min) * speed;
-    let boost = if vector.dx().abs() > 0.0 && vector.dy().abs() > 0.0 {
-      SETTINGS.diagonal_boost()
+    let raw_speed = (vector.dx().powi(2) + vector.dy().powi(2)).sqrt();
+    let sensitivity = SETTINGS.right_stick_sensitivity();
+    let scaled_speed = raw_speed * sensitivity;
+    let clamped_speed = scaled_speed.clamp(1.0, 500.0);
+    let normalized_speed = (clamped_speed - 1.0) / 499.0;
+    let min_tilt = SETTINGS.min_tilt_range();
+    let max_tilt = SETTINGS.max_tilt_range();
+    let tilt = min_tilt + (max_tilt - min_tilt) * normalized_speed;
+
+    let diagonal_boost = if vector.dx().abs() > 0.0 && vector.dy().abs() > 0.0 {
+      1.41
     } else {
       1.0
     };
-    let x = tilt * angle.cos() * boost;
-    let y = tilt * angle.sin() * boost;
 
-    self.update_smoothed_position(Vector::new(x, y), SETTINGS.blend());
+    let angle = vector.dy().atan2(vector.dx());
+    let x = tilt * angle.cos() * diagonal_boost;
+    let y = tilt * angle.sin() * diagonal_boost;
+
+    let vector = Vector::new(x, y);
+
+    self.update_smoothed_position(vector, SETTINGS.blend());
+
     self.mouse_events.clear();
-    self.vector()
+
+    Vector::new(self.x, self.y)
   }
 
   fn update_smoothed_position(&mut self, vector: Vector, blend: f64) {
     let prev = self.vector();
+    let min_tilt = SETTINGS.min_tilt_range();
     let max_tilt = SETTINGS.max_stick_tilt();
-    let x = blend_value(prev.dx(), vector.dx(), blend);
-    let y = blend_value(prev.dy(), vector.dy(), blend);
-    let angle = compute_smoothed_angle(x, y, self.angle);
 
-    self.angle = Some(angle);
+    let x = (1.0 - blend) * prev.dx() + blend * vector.dx();
+    let y = (1.0 - blend) * prev.dy() + blend * vector.dy();
 
-    let mag = magnitude(Vector::new(x, y));
-    let last_mag = magnitude(prev);
-    let delta = (mag - last_mag).abs();
+    let angle = y.atan2(x).to_degrees();
 
-    let mag = if delta < SETTINGS.speed_delta_threshold() {
+    let angle = match self.angle {
+      Some(prev_angle) => {
+        let delta = ((angle - prev_angle + 180.0) % 360.0) - 180.0;
+        if delta.abs() < 0.5 {
+          prev_angle
+        } else {
+          self.angle = Some(angle);
+          angle
+        }
+      }
+      None => {
+        self.angle = Some(angle);
+        angle
+      }
+    };
+
+    let mag = (x.powi(2) + y.powi(2)).sqrt();
+    let angle_rad = angle.to_radians();
+
+    let last_mag = (prev.dx().powi(2) + prev.dy().powi(2)).sqrt();
+    let speed_delta = (mag - last_mag).abs();
+
+    let stable_mag = if speed_delta < 200.0 {
       last_mag
     } else {
       mag
     };
 
-    let mag = if mag < SETTINGS.min_tilt_range() && mag > SETTINGS.stable_mag_lower_bound() {
-      SETTINGS.min_tilt_range()
+    let adjusted_mag = if stable_mag < min_tilt && stable_mag > 0.001 {
+      min_tilt
     } else {
-      mag
+      stable_mag
     };
 
-    let radians = angle.to_radians();
-    let mut x = mag * radians.cos();
-    let mut y = mag * radians.sin();
+    let mut final_x = adjusted_mag * angle_rad.cos();
+    let mut final_y = adjusted_mag * angle_rad.sin();
 
-    let length = magnitude(Vector::new(x, y));
+    let length = (final_x.powi(2) + final_y.powi(2)).sqrt();
+
     if length > max_tilt {
       let scale = max_tilt / length;
-      x *= scale;
-      y *= scale;
+      final_x *= scale;
+      final_y *= scale;
     }
 
-    self.x = x;
-    self.y = y;
+    self.x = final_x;
+    self.y = final_y;
   }
 
   pub fn update_direction(&mut self) {
@@ -179,6 +225,10 @@ impl JoyStickState {
       (false, false, false, true) => Some(Direction::East),
       _ => None,
     };
+  }
+
+  pub fn recenter(&mut self) {
+    *self = Self::default();
   }
 
   pub fn set_up(&mut self, up: State) {
@@ -209,65 +259,25 @@ impl JoyStickState {
     self.y
   }
 
+  pub fn vector(&self) -> Vector {
+    Vector::new(self.x, self.y)
+  }
+
+  pub fn last_event(&self) -> Instant {
+    self.last_event
+  }
+
+  pub fn is_idle(&self) -> bool {
+    let now = Instant::now();
+    let elapsed = now.duration_since(self.last_event());
+    elapsed > SETTINGS.mouse_idle_timeout() && (self.x() != 0.0 || self.y() != 0.0)
+  }
+
   pub fn handle_idle(&mut self) -> bool {
     if self.is_idle() {
       self.recenter();
       return true;
     }
     false
-  }
-
-  fn is_idle(&self) -> bool {
-    let now = Instant::now();
-    let elapsed = now.duration_since(self.last_event);
-    elapsed > SETTINGS.mouse_idle_timeout() && (!self.is_centered())
-  }
-
-  fn vector(&self) -> Vector {
-    Vector::new(self.x, self.y)
-  }
-
-  fn clamp_tilt(&mut self) {
-    let mag = magnitude(self.vector());
-    let max = SETTINGS.max_stick_tilt();
-    if mag > max {
-      let scale = max / mag;
-      self.x = (self.x * scale).round();
-      self.y = (self.y * scale).round();
-    }
-  }
-}
-
-fn magnitude(vector: Vector) -> f64 {
-  (vector.dx().powi(2) + vector.dy().powi(2)).sqrt()
-}
-
-fn speed(vector: Vector, sensitivity: f64) -> f64 {
-  let speed = magnitude(vector);
-  let scaled = speed * sensitivity;
-  let clamped = scaled.clamp(SETTINGS.speed_clamp_min(), SETTINGS.speed_clamp_max());
-  (clamped - SETTINGS.speed_clamp_min()) / SETTINGS.speed_normalizer()
-}
-
-fn average(values: &[f64]) -> f64 {
-  values.iter().copied().sum::<f64>() / values.len() as f64
-}
-
-fn blend_value(prev: f64, new: f64, blend: f64) -> f64 {
-  (1.0 - blend) * prev + blend * new
-}
-
-fn compute_smoothed_angle(x: f64, y: f64, prev: Option<f64>) -> f64 {
-  let angle = y.atan2(x).to_degrees();
-  match prev {
-    Some(prev) => {
-      let delta = ((angle - prev + 180.0) % 360.0) - 180.0;
-      if delta.abs() < SETTINGS.angle_smooth_threshold() {
-        prev
-      } else {
-        angle
-      }
-    }
-    None => angle,
   }
 }

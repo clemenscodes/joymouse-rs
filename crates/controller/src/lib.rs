@@ -243,11 +243,7 @@ impl Controller {
   }
 
   fn center_left_stick(&mut self) {
-    let is_centered = { self.left_stick.lock().unwrap().is_centered() };
-    if !is_centered {
-      self.left_stick_mut().lock().unwrap().recenter();
-      self.move_left_stick(Vector::default(), None);
-    }
+    self.move_left_stick(Vector::default(), None);
   }
 
   fn center_right_stick(&mut self) {
@@ -264,7 +260,6 @@ impl Controller {
   }
 
   fn handle_right_stick(&mut self) {
-    self.right_stick_mut().lock().unwrap().recenter();
     if self.right_stick_mut().lock().unwrap().handle_idle() {
       self.center_right_stick();
     }
