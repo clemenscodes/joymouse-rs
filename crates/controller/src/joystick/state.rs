@@ -276,7 +276,11 @@ impl JoyStickState {
     } else {
       SETTINGS.mouse_idle_timeout()
     };
-    elapsed > timeout && (self.x() != 0.0 || self.y() != 0.0)
+    elapsed > timeout && !self.is_centered()
+  }
+
+  pub fn is_centered(&self) -> bool {
+    self.x() == 0.0 && self.y() == 0.0
   }
 
   pub fn handle_idle(&mut self, left_stick_direction: Option<Direction>) -> bool {

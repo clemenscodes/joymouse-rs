@@ -136,9 +136,9 @@ pub static CONTROLLER_KEY_MAP: LazyLock<HashMap<ControllerButton, Vec<KeyCode>>>
     map.insert(West, vec![KeyCode::KEY_C, KeyCode::BTN_SIDE]);
 
     map.insert(Up, vec![KeyCode::KEY_UP, KeyCode::KEY_K, KeyCode::KEY_2]);
-    map.insert(Left, vec![KeyCode::KEY_LEFT, KeyCode::KEY_H, KeyCode::KEY_3]);
+    map.insert(Left, vec![KeyCode::KEY_LEFT, KeyCode::KEY_H, KeyCode::KEY_1]);
     map.insert(Down, vec![KeyCode::KEY_DOWN, KeyCode::KEY_J, KeyCode::KEY_4]);
-    map.insert(Right, vec![KeyCode::KEY_RIGHT, KeyCode::KEY_L, KeyCode::KEY_1]);
+    map.insert(Right, vec![KeyCode::KEY_RIGHT, KeyCode::KEY_L, KeyCode::KEY_3]);
 
     map.insert(R1, vec![KeyCode::BTN_LEFT]);
     map.insert(L1, vec![KeyCode::BTN_RIGHT]);
