@@ -1,7 +1,8 @@
 use crate::{
   joystick::{axis::JoyStickAxis, direction::Direction, polarity::Polarity, JoyStick},
-  settings::SETTINGS,
 };
+
+use config::SETTINGS;
 
 #[derive(Default, Debug, Copy, Clone)]
 pub struct Vector {

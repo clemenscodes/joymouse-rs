@@ -1,0 +1,15 @@
+name = "JoyMouse"
+vendor = 4660
+product = 22136
+version = 256
+max_stick_tilt = 32767.0
+min_stick_tilt = -32768.0
+deadzone = 0.0
+noise_tolerance = 0.0
+tickrate = 16
+left_stick_sensitivity = 10000.0
+right_stick_sensitivity = 7.0
+blend = 0.2
+mouse_idle_timeout = 64
+max_tilt_range = 32767.0
+min_tilt_range = 13106.0

@@ -1,4 +1,4 @@
-use crate::settings::SETTINGS;
+use config::SETTINGS;
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy, PartialOrd, Ord)]
 pub enum Motion {

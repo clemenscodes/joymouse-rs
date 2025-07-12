@@ -2,9 +2,10 @@ use std::time::Instant;
 
 use crate::{
   joystick::{direction::Direction, motion::Motion, vector::Vector},
-  settings::SETTINGS,
   state::State,
 };
+
+use config::SETTINGS;
 
 #[derive(Debug)]
 pub struct JoyStickState {
