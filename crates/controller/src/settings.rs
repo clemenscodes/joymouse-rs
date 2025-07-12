@@ -94,7 +94,7 @@ impl Default for ControllerSettings {
     let tickrate = Duration::from_millis(16);
     let mouse_idle_timeout = tickrate * 4;
     let left_stick_sensitivity = 10000.0;
-    let right_stick_sensitivity = 3.0;
+    let right_stick_sensitivity = 7.0;
     let max_stick_tilt = 32767.0;
     let min_stick_tilt = -32768.0;
     let minimum_tilt = 0.4;
@@ -135,10 +135,10 @@ pub static CONTROLLER_KEY_MAP: LazyLock<HashMap<ControllerButton, Vec<KeyCode>>>
     map.insert(North, vec![KeyCode::KEY_F]);
     map.insert(West, vec![KeyCode::KEY_C, KeyCode::BTN_SIDE]);
 
-    map.insert(Up, vec![KeyCode::KEY_UP, KeyCode::KEY_K]);
-    map.insert(Left, vec![KeyCode::KEY_LEFT, KeyCode::KEY_H, KeyCode::KEY_1]);
-    map.insert(Down, vec![KeyCode::KEY_DOWN, KeyCode::KEY_J]);
-    map.insert(Right, vec![KeyCode::KEY_RIGHT, KeyCode::KEY_L, KeyCode::KEY_3]);
+    map.insert(Up, vec![KeyCode::KEY_UP, KeyCode::KEY_K, KeyCode::KEY_2]);
+    map.insert(Left, vec![KeyCode::KEY_LEFT, KeyCode::KEY_H, KeyCode::KEY_3]);
+    map.insert(Down, vec![KeyCode::KEY_DOWN, KeyCode::KEY_J, KeyCode::KEY_4]);
+    map.insert(Right, vec![KeyCode::KEY_RIGHT, KeyCode::KEY_L, KeyCode::KEY_1]);
 
     map.insert(R1, vec![KeyCode::BTN_LEFT]);
     map.insert(L1, vec![KeyCode::BTN_RIGHT]);

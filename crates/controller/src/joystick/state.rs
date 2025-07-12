@@ -267,14 +267,20 @@ impl JoyStickState {
     self.last_event
   }
 
-  pub fn is_idle(&self) -> bool {
+  pub fn is_idle(&self, left_stick_direction: Option<Direction>) -> bool {
     let now = Instant::now();
     let elapsed = now.duration_since(self.last_event());
-    elapsed > SETTINGS.mouse_idle_timeout() && (self.x() != 0.0 || self.y() != 0.0)
+
+    let timeout = if (self.motion == Motion::Micro) && left_stick_direction.is_some() {
+      SETTINGS.mouse_idle_timeout() * 5
+    } else {
+      SETTINGS.mouse_idle_timeout()
+    };
+    elapsed > timeout && (self.x() != 0.0 || self.y() != 0.0)
   }
 
-  pub fn handle_idle(&mut self) -> bool {
-    if self.is_idle() {
+  pub fn handle_idle(&mut self, left_stick_direction: Option<Direction>) -> bool {
+    if self.is_idle(left_stick_direction) {
       self.recenter();
       return true;
     }
