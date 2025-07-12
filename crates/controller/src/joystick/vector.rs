@@ -1,5 +1,5 @@
 use crate::{
-  joystick::{JoyStick, axis::JoyStickAxis, direction::Direction, polarity::Polarity},
+  joystick::{axis::JoyStickAxis, direction::Direction, polarity::Polarity, JoyStick},
   settings::SETTINGS,
 };
 

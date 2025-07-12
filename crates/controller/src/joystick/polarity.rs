@@ -2,7 +2,7 @@ use evdev::KeyCode;
 
 use crate::{
   button::ControllerButton,
-  joystick::{JoyStickError, axis::JoyStickAxis},
+  joystick::{axis::JoyStickAxis, JoyStickError},
 };
 
 #[derive(Debug, Copy, Clone)]

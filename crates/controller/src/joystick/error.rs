@@ -2,7 +2,7 @@ use evdev::{KeyCode, RelativeAxisCode};
 
 use crate::{
   button::ButtonError,
-  joystick::{AxisError, polarity::PolarityError},
+  joystick::{polarity::PolarityError, AxisError},
   state::StateError,
 };
 
