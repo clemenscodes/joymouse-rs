@@ -2,8 +2,7 @@ mod control;
 mod error;
 mod event;
 
-use crate::settings::CONTROLLER_KEY_MAP;
-
+use crate::settings::KEYBOARD_BUTTON_MAP;
 use evdev::KeyCode;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -30,18 +29,6 @@ pub enum ControllerButton {
   Select,
 }
 
-impl TryFrom<KeyCode> for ControllerButton {
-  type Error = ButtonError;
-
-  fn try_from(value: KeyCode) -> Result<Self, Self::Error> {
-    if let Some(button) = CONTROLLER_KEY_MAP.get(&value) {
-      return Ok(*button);
-    }
-
-    Err(ButtonError::UnsupportedKeyCode(value))
-  }
-}
-
 impl TryFrom<ControllerButton> for KeyCode {
   type Error = ButtonError;
 
@@ -66,6 +53,18 @@ impl TryFrom<ControllerButton> for KeyCode {
       _ => return Err(ButtonError::InvalidButton(value)),
     };
     Ok(code)
+  }
+}
+
+impl TryFrom<KeyCode> for ControllerButton {
+  type Error = ButtonError;
+
+  fn try_from(value: KeyCode) -> Result<Self, Self::Error> {
+    if let Some(button) = KEYBOARD_BUTTON_MAP.get(&value) {
+      Ok(*button)
+    } else {
+      Err(ButtonError::UnsupportedKeyCode(value))
+    }
   }
 }
 

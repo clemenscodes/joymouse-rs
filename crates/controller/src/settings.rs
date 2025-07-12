@@ -208,42 +208,48 @@ impl Default for ControllerSettings {
 
 pub static SETTINGS: LazyLock<ControllerSettings> = LazyLock::new(ControllerSettings::default);
 
-pub static CONTROLLER_KEY_MAP: LazyLock<HashMap<KeyCode, ControllerButton>> = LazyLock::new(|| {
-  let mut map = HashMap::new();
+#[rustfmt::skip]
+pub static CONTROLLER_KEY_MAP: LazyLock<HashMap<ControllerButton, Vec<KeyCode>>> = LazyLock::new(|| {
+    use ControllerButton::*;
 
-  map.insert(KeyCode::KEY_SPACE, ControllerButton::South);
-  map.insert(KeyCode::KEY_LEFTCTRL, ControllerButton::East);
-  map.insert(KeyCode::KEY_F, ControllerButton::North);
-  map.insert(KeyCode::KEY_C, ControllerButton::West);
-  map.insert(KeyCode::KEY_UP, ControllerButton::Up);
-  map.insert(KeyCode::KEY_LEFT, ControllerButton::Left);
-  map.insert(KeyCode::KEY_DOWN, ControllerButton::Down);
-  map.insert(KeyCode::KEY_RIGHT, ControllerButton::Right);
-  map.insert(KeyCode::BTN_LEFT, ControllerButton::R1);
-  map.insert(KeyCode::BTN_RIGHT, ControllerButton::L1);
-  map.insert(KeyCode::KEY_Q, ControllerButton::L2);
-  map.insert(KeyCode::KEY_X, ControllerButton::R2);
-  map.insert(KeyCode::KEY_LEFTALT, ControllerButton::L3);
-  map.insert(KeyCode::KEY_V, ControllerButton::R3);
-  map.insert(KeyCode::KEY_TAB, ControllerButton::Select);
-  map.insert(KeyCode::KEY_ENTER, ControllerButton::Start);
-  map.insert(KeyCode::KEY_W, ControllerButton::Forward);
-  map.insert(KeyCode::KEY_A, ControllerButton::Port);
-  map.insert(KeyCode::KEY_S, ControllerButton::Backward);
-  map.insert(KeyCode::KEY_D, ControllerButton::Starboard);
+    let mut map = HashMap::new();
 
-  for button in ControllerButton::all() {
-    assert!(
-      map.values().any(|b| b == button),
-      "Missing mapping for ControllerButton::{:?}",
-      button
-    );
-  }
+    map.insert(South, vec![KeyCode::KEY_SPACE]);
+    map.insert(East, vec![KeyCode::KEY_LEFTCTRL]);
+    map.insert(North, vec![KeyCode::KEY_F]);
+    map.insert(West, vec![KeyCode::KEY_C, KeyCode::BTN_SIDE]);
 
-  map
-});
+    map.insert(Up, vec![KeyCode::KEY_UP, KeyCode::KEY_K]);
+    map.insert(Left, vec![KeyCode::KEY_LEFT, KeyCode::KEY_H, KeyCode::KEY_1]);
+    map.insert(Down, vec![KeyCode::KEY_DOWN, KeyCode::KEY_J]);
+    map.insert(Right, vec![KeyCode::KEY_RIGHT, KeyCode::KEY_L, KeyCode::KEY_3]);
+
+    map.insert(R1, vec![KeyCode::BTN_LEFT]);
+    map.insert(L1, vec![KeyCode::BTN_RIGHT]);
+    map.insert(L2, vec![KeyCode::KEY_Q, KeyCode::BTN_EXTRA]);
+    map.insert(R2, vec![KeyCode::KEY_X]);
+    map.insert(L3, vec![KeyCode::KEY_LEFTALT]);
+    map.insert(R3, vec![KeyCode::KEY_V]);
+
+    map.insert(Select, vec![KeyCode::KEY_TAB]);
+    map.insert(Start, vec![KeyCode::KEY_ENTER]);
+
+    map.insert(Forward, vec![KeyCode::KEY_W]);
+    map.insert(Port, vec![KeyCode::KEY_A]);
+    map.insert(Backward, vec![KeyCode::KEY_S]);
+    map.insert(Starboard, vec![KeyCode::KEY_D]);
+
+    for button in ControllerButton::all() {
+      assert!(map.contains_key(button), "Missing mapping for ControllerButton::{:?}", button);
+    }
+
+    map
+  });
 
 #[rustfmt::skip]
-pub static KEYBOARD_BUTTON_MAP: LazyLock<HashMap<ControllerButton, KeyCode>> = LazyLock::new(|| 
-  CONTROLLER_KEY_MAP.iter().map(|(k, v)| (*v, *k)).collect()
-);
+pub static KEYBOARD_BUTTON_MAP: LazyLock<HashMap<KeyCode, ControllerButton>> = LazyLock::new(|| {
+  CONTROLLER_KEY_MAP
+    .iter()
+    .flat_map(|(button, keys)| keys.iter().map(move |key| (*key, *button)))
+    .collect()
+});

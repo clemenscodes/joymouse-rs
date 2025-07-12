@@ -47,7 +47,7 @@ impl TryFrom<KeyEvent> for ControllerJoyStickEvent {
   fn try_from(value: KeyEvent) -> Result<Self, Self::Error> {
     let code = value.code();
     let joystick = JoyStick::Left;
-    let axis = JoyStickAxis::try_from((*JOYSTICK_KEYS, code))?;
+    let axis = JoyStickAxis::try_from((&*JOYSTICK_KEYS, code))?;
     let button = ControllerButton::try_from(code)?;
     let state = State::try_from(value.value())?;
     let polarity = Polarity::try_from((&axis, &button, code))?;

@@ -172,7 +172,11 @@ impl Controller {
     &mut self.virtual_device
   }
 
-  fn emit_events(&mut self, events: &[InputEvent]) {
+  fn emit_button_events(&mut self, events: &[InputEvent]) {
+    self.virtual_device_mut().emit(events).unwrap()
+  }
+
+  fn emit_joystick_events(&mut self, events: &[InputEvent]) {
     self.virtual_device_mut().emit(events).unwrap()
   }
 
@@ -189,6 +193,7 @@ impl Controller {
       {
         controller.lock().unwrap().handle_left_stick();
       }
+      std::thread::sleep(SETTINGS.tickrate());
     }
   }
 
@@ -202,14 +207,12 @@ impl Controller {
     if let Some(direction) = maybe_direction {
       let vector = Vector::from(direction) * SETTINGS.left_stick_sensitivity();
 
-      let (x, y) = {
+      let vector = {
         let mut stick = self.left_stick_mut().lock().unwrap();
-
-        stick.tilt(vector);
-        (stick.x(), stick.y())
+        stick.tilt(vector)
       };
 
-      self.move_left_stick(Vector::new(x, y), Some(direction));
+      self.move_left_stick(vector, Some(direction));
     } else {
       self.center_left_stick();
     }
@@ -226,21 +229,25 @@ impl Controller {
       (vector.dx(), -vector.dy())
     };
 
-    self.emit_events(&[
+    self.emit_button_events(&[
       Self::get_stick_event(JoyStick::Left, JoyStickAxis::X, x),
       Self::get_stick_event(JoyStick::Left, JoyStickAxis::Y, y),
     ]);
   }
 
   fn move_right_stick(&mut self, vector: Vector) {
-    self.emit_events(&[
+    self.emit_joystick_events(&[
       Self::get_stick_event(JoyStick::Right, JoyStickAxis::X, vector.dx()),
       Self::get_stick_event(JoyStick::Right, JoyStickAxis::Y, vector.dy()),
     ]);
   }
 
   fn center_left_stick(&mut self) {
-    self.move_left_stick(Vector::default(), None);
+    let is_centered = { self.left_stick.lock().unwrap().is_centered() };
+    if !is_centered {
+      self.left_stick_mut().lock().unwrap().recenter();
+      self.move_left_stick(Vector::default(), None);
+    }
   }
 
   fn center_right_stick(&mut self) {
@@ -257,6 +264,7 @@ impl Controller {
   }
 
   fn handle_right_stick(&mut self) {
+    self.right_stick_mut().lock().unwrap().recenter();
     if self.right_stick_mut().lock().unwrap().handle_idle() {
       self.center_right_stick();
     }
