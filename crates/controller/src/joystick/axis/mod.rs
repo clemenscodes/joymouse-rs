@@ -13,18 +13,20 @@ pub enum JoyStickAxis {
   Y,
 }
 
-impl TryFrom<(JoyStickKeys, KeyCode)> for JoyStickAxis {
+impl TryFrom<(&JoyStickKeys, KeyCode)> for JoyStickAxis {
   type Error = AxisError;
 
-  fn try_from((keys, code): (JoyStickKeys, KeyCode)) -> Result<Self, Self::Error> {
+  fn try_from((keys, code): (&JoyStickKeys, KeyCode)) -> Result<Self, Self::Error> {
     if !keys.code_is_joystick_key(code) {
       return Err(AxisError::Unknown);
     }
-    let axis = if keys.forward() == code || keys.backward() == code {
+
+    let axis = if keys.forward().contains(&code) || keys.backward().contains(&code) {
       Self::Y
     } else {
       Self::X
     };
+
     Ok(axis)
   }
 }

@@ -44,6 +44,14 @@ impl Default for JoyStickState {
 }
 
 impl JoyStickState {
+  pub fn is_centered(&self) -> bool {
+    self.x() == 0.0 && self.y() == 0.0
+  }
+
+  pub fn recenter(&mut self) {
+    *self = Self::default();
+  }
+
   pub fn tilt(&mut self, vector: Vector) -> Vector {
     let sensitivity = SETTINGS.left_stick_sensitivity();
     self.last_event = Instant::now();
@@ -212,11 +220,7 @@ impl JoyStickState {
   fn is_idle(&self) -> bool {
     let now = Instant::now();
     let elapsed = now.duration_since(self.last_event);
-    elapsed > SETTINGS.mouse_idle_timeout() && (self.x() != 0.0 || self.y() != 0.0)
-  }
-
-  fn recenter(&mut self) {
-    *self = Self::default();
+    elapsed > SETTINGS.mouse_idle_timeout() && (!self.is_centered())
   }
 
   fn vector(&self) -> Vector {

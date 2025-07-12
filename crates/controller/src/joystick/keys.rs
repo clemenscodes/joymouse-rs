@@ -1,48 +1,51 @@
 use std::sync::LazyLock;
 
-use crate::{button::ControllerButton, settings::KEYBOARD_BUTTON_MAP};
+use crate::{button::ControllerButton, settings::CONTROLLER_KEY_MAP};
 
 use evdev::KeyCode;
 
 pub static JOYSTICK_KEYS: LazyLock<JoyStickKeys> = LazyLock::new(JoyStickKeys::default);
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Clone)]
 pub struct JoyStickKeys {
-  forward: KeyCode,
-  backward: KeyCode,
-  port: KeyCode,
-  starboard: KeyCode,
+  forward: Vec<KeyCode>,
+  backward: Vec<KeyCode>,
+  port: Vec<KeyCode>,
+  starboard: Vec<KeyCode>,
 }
 
 impl Default for JoyStickKeys {
   fn default() -> Self {
     Self {
-      forward: *KEYBOARD_BUTTON_MAP.get(&ControllerButton::Forward).unwrap(),
-      backward: *KEYBOARD_BUTTON_MAP.get(&ControllerButton::Backward).unwrap(),
-      port: *KEYBOARD_BUTTON_MAP.get(&ControllerButton::Port).unwrap(),
-      starboard: *KEYBOARD_BUTTON_MAP.get(&ControllerButton::Starboard).unwrap(),
+      forward: CONTROLLER_KEY_MAP.get(&ControllerButton::Forward).cloned().unwrap_or_default(),
+      backward: CONTROLLER_KEY_MAP.get(&ControllerButton::Backward).cloned().unwrap_or_default(),
+      port: CONTROLLER_KEY_MAP.get(&ControllerButton::Port).cloned().unwrap_or_default(),
+      starboard: CONTROLLER_KEY_MAP.get(&ControllerButton::Starboard).cloned().unwrap_or_default(),
     }
   }
 }
 
 impl JoyStickKeys {
   pub fn code_is_joystick_key(&self, code: KeyCode) -> bool {
-    code == self.forward || code == self.backward || code == self.port || code == self.starboard
+    self.forward.contains(&code)
+      || self.backward.contains(&code)
+      || self.port.contains(&code)
+      || self.starboard.contains(&code)
   }
 
-  pub fn forward(&self) -> KeyCode {
-    self.forward
+  pub fn forward(&self) -> &[KeyCode] {
+    &self.forward
   }
 
-  pub fn backward(&self) -> KeyCode {
-    self.backward
+  pub fn backward(&self) -> &[KeyCode] {
+    &self.backward
   }
 
-  pub fn port(&self) -> KeyCode {
-    self.port
+  pub fn port(&self) -> &[KeyCode] {
+    &self.port
   }
 
-  pub fn starboard(&self) -> KeyCode {
-    self.starboard
+  pub fn starboard(&self) -> &[KeyCode] {
+    &self.starboard
   }
 }
