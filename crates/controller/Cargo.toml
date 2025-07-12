@@ -8,3 +8,4 @@ authors.workspace = true
 [dependencies]
 epoll = "4.3.3"
 evdev = "0.13.1"
+config = { path = "../config" }

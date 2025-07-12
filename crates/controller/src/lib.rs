@@ -8,8 +8,9 @@ mod state;
 use crate::{
   event::ControllerEvent,
   joystick::{Direction, JoyStick, JoyStickAxis, JoyStickState, Vector},
-  settings::SETTINGS,
 };
+
+use config::SETTINGS;
 
 use std::{
   collections::HashMap,
