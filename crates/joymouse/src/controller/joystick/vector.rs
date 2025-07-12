@@ -28,6 +28,11 @@ impl Vector {
   pub fn dy(&self) -> f64 {
     self.dy
   }
+
+  pub fn sum(vectors: &[Self]) -> Self {
+    let (x, y) = vectors.iter().copied().fold((0.0, 0.0), |(dx, dy), v| (dx + v.dx(), dy + v.dy()));
+    Self::new(x, y)
+  }
 }
 
 impl std::ops::Mul<f64> for Vector {

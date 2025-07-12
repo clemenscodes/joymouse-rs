@@ -6,7 +6,8 @@ mod settings;
 mod state;
 
 use crate::controller::{
-  joystick::{Direction, JoyStick, JoyStickAxis, JoyStickState},
+  event::ControllerEvent,
+  joystick::{Direction, JoyStick, JoyStickAxis, JoyStickState, Vector},
   settings::SETTINGS,
 };
 
@@ -30,10 +31,33 @@ pub struct Controller {
 }
 
 impl Controller {
-  pub fn try_create() -> Result<Self, Box<dyn std::error::Error>> {
+  pub fn run() {
+    let mouse = Arc::new(Mutex::new(Self::init_mouse()));
+    let keyboard = Arc::new(Mutex::new(Self::init_keyboard()));
+    let controller = Arc::new(Mutex::new(Self::try_create().unwrap()));
+
+    let left_stick = Arc::clone(&controller);
+    std::thread::spawn(move || Self::monitor_left_stick(left_stick));
+
+    let right_stick = Arc::clone(&controller);
+    std::thread::spawn(move || Self::monitor_right_stick(right_stick));
+
+    let io = std::thread::spawn(move || Self::monitor_io(mouse, keyboard, controller));
+
+    println!("Started JoyMouse 🎮🐭");
+
+    io.join().unwrap();
+  }
+
+  fn try_create() -> Result<Self, Box<dyn std::error::Error>> {
     let builder = VirtualDevice::builder()?;
-    let input_id =
-      InputId::new(BusType::BUS_USB, SETTINGS.vendor(), SETTINGS.product(), SETTINGS.version());
+
+    let bus_type = BusType::BUS_USB;
+    let vendor = SETTINGS.vendor();
+    let product = SETTINGS.product();
+    let version = SETTINGS.version();
+    let input_id = InputId::new(bus_type, vendor, product, version);
+
     let mut button_set = AttributeSet::<KeyCode>::new();
 
     let buttons = [
@@ -90,17 +114,17 @@ impl Controller {
     })
   }
 
-  pub fn init_mouse() -> Device {
+  fn init_mouse() -> Device {
     let mut mice = Self::find_mice();
     Self::find_mouse(&mut mice)
   }
 
-  pub fn init_keyboard() -> Device {
+  fn init_keyboard() -> Device {
     let mut candidates = Self::find_keyboards();
     Self::find_keyboard(&mut candidates)
   }
 
-  pub fn monitor_io(
+  fn monitor_io(
     mouse: Arc<Mutex<Device>>,
     keyboard: Arc<Mutex<Device>>,
     controller: Arc<Mutex<Self>>,
@@ -160,7 +184,7 @@ impl Controller {
     &mut self.right_stick
   }
 
-  pub fn monitor_left_stick(controller: Arc<Mutex<Self>>) {
+  fn monitor_left_stick(controller: Arc<Mutex<Self>>) {
     loop {
       {
         controller.lock().unwrap().handle_left_stick();
@@ -168,7 +192,7 @@ impl Controller {
     }
   }
 
-  pub fn handle_left_stick(&mut self) {
+  fn handle_left_stick(&mut self) {
     let maybe_direction = {
       let stick_lock = self.left_stick_mut();
       let stick = stick_lock.lock().unwrap();
@@ -220,11 +244,10 @@ impl Controller {
   }
 
   fn center_right_stick(&mut self) {
-    self.right_stick_mut().lock().unwrap().recenter();
     self.move_right_stick(Vector::default());
   }
 
-  pub fn monitor_right_stick(controller: Arc<Mutex<Self>>) {
+  fn monitor_right_stick(controller: Arc<Mutex<Self>>) {
     loop {
       {
         controller.lock().unwrap().handle_right_stick();
@@ -233,7 +256,7 @@ impl Controller {
     }
   }
 
-  pub fn handle_right_stick(&mut self) {
+  fn handle_right_stick(&mut self) {
     if self.right_stick_mut().lock().unwrap().handle_idle() {
       self.center_right_stick();
     }
@@ -379,6 +402,3 @@ impl Controller {
     candidates.remove(index)
   }
 }
-
-pub use event::ControllerEvent;
-pub use joystick::Vector;
