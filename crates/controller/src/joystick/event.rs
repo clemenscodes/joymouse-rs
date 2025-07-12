@@ -1,6 +1,6 @@
 use evdev::{AbsoluteAxisCode, KeyEvent, RelativeAxisEvent};
 
-use crate::controller::{
+use crate::{
   button::ControllerButton,
   joystick::{JOYSTICK_KEYS, JoyStick, JoyStickError, axis::JoyStickAxis, polarity::Polarity},
   state::State,

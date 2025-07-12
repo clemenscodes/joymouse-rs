@@ -1,19 +1,10 @@
 use std::time::Instant;
 
-use crate::controller::{
+use crate::{
   joystick::{direction::Direction, motion::Motion, vector::Vector},
   settings::SETTINGS,
   state::State,
 };
-
-const MAX_MOTION_HISTORY: usize = 5;
-const SPEED_CLAMP_MIN: f64 = 1.0;
-const SPEED_CLAMP_MAX: f64 = 500.0;
-const SPEED_NORMALIZER: f64 = SPEED_CLAMP_MAX - SPEED_CLAMP_MIN;
-const DIAGONAL_BOOST: f64 = 1.41;
-const ANGLE_SMOOTH_THRESHOLD: f64 = 0.5;
-const SPEED_DELTA_THRESHOLD: f64 = 200.0;
-const STABLE_MAG_LOWER_BOUND: f64 = 0.001;
 
 #[derive(Debug)]
 pub struct JoyStickState {
@@ -72,7 +63,7 @@ impl JoyStickState {
       let speed = speed(vector, SETTINGS.right_stick_sensitivity());
 
       self.motion_history.push(speed);
-      if self.motion_history.len() > MAX_MOTION_HISTORY {
+      if self.motion_history.len() > SETTINGS.max_motion_history() {
         self.motion_history.remove(0);
       }
 
@@ -111,7 +102,7 @@ impl JoyStickState {
     let max = SETTINGS.max_tilt_range();
     let tilt = min + (max - min) * speed;
     let boost = if vector.dx().abs() > 0.0 && vector.dy().abs() > 0.0 {
-      DIAGONAL_BOOST
+      SETTINGS.diagonal_boost()
     } else {
       1.0
     };
@@ -136,13 +127,13 @@ impl JoyStickState {
     let last_mag = magnitude(prev);
     let delta = (mag - last_mag).abs();
 
-    let mag = if delta < SPEED_DELTA_THRESHOLD {
+    let mag = if delta < SETTINGS.speed_delta_threshold() {
       last_mag
     } else {
       mag
     };
 
-    let mag = if mag < SETTINGS.min_tilt_range() && mag > STABLE_MAG_LOWER_BOUND {
+    let mag = if mag < SETTINGS.min_tilt_range() && mag > SETTINGS.stable_mag_lower_bound() {
       SETTINGS.min_tilt_range()
     } else {
       mag
@@ -250,8 +241,8 @@ fn magnitude(vector: Vector) -> f64 {
 fn speed(vector: Vector, sensitivity: f64) -> f64 {
   let speed = magnitude(vector);
   let scaled = speed * sensitivity;
-  let clamped = scaled.clamp(SPEED_CLAMP_MIN, SPEED_CLAMP_MAX);
-  (clamped - SPEED_CLAMP_MIN) / SPEED_NORMALIZER
+  let clamped = scaled.clamp(SETTINGS.speed_clamp_min(), SETTINGS.speed_clamp_max());
+  (clamped - SETTINGS.speed_clamp_min()) / SETTINGS.speed_normalizer()
 }
 
 fn average(values: &[f64]) -> f64 {
@@ -267,7 +258,7 @@ fn compute_smoothed_angle(x: f64, y: f64, prev: Option<f64>) -> f64 {
   match prev {
     Some(prev) => {
       let delta = ((angle - prev + 180.0) % 360.0) - 180.0;
-      if delta.abs() < ANGLE_SMOOTH_THRESHOLD {
+      if delta.abs() < SETTINGS.angle_smooth_threshold() {
         prev
       } else {
         angle

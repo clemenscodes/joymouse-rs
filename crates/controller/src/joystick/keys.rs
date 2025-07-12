@@ -1,6 +1,6 @@
 use std::sync::LazyLock;
 
-use crate::controller::{button::ControllerButton, settings::KEYBOARD_BUTTON_MAP};
+use crate::{button::ControllerButton, settings::KEYBOARD_BUTTON_MAP};
 
 use evdev::KeyCode;
 

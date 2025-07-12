@@ -1,4 +1,4 @@
-use crate::controller::button::ButtonError;
+use crate::button::ButtonError;
 
 #[derive(Debug)]
 pub enum AxisError {

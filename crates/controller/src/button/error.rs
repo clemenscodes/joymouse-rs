@@ -1,6 +1,6 @@
 use evdev::KeyCode;
 
-use crate::controller::{button::ControllerButton, state::StateError};
+use crate::{button::ControllerButton, state::StateError};
 
 #[derive(Debug)]
 pub enum ButtonError {

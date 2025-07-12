@@ -1,8 +1,8 @@
 mod error;
 
-use crate::controller::{
+use crate::{
   button::ControllerButton,
-  joystick::{JOYSTICK_KEYS, keys::JoyStickKeys},
+  joystick::{keys::JoyStickKeys, JOYSTICK_KEYS},
 };
 
 use evdev::{KeyCode, KeyEvent, RelativeAxisCode, RelativeAxisEvent};

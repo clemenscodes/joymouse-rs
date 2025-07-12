@@ -1,6 +1,6 @@
 use evdev::InputEvent;
 
-use crate::controller::{Controller, button::ControllerButtonEvent};
+use crate::{Controller, button::ControllerButtonEvent};
 
 impl Controller {
   pub fn handle_button_event(&mut self, event: ControllerButtonEvent) {

@@ -1,6 +1,6 @@
 use evdev::{EventSummary, KeyEvent, RelativeAxisEvent};
 
-use crate::controller::{
+use crate::{
   button::ControllerButtonEvent,
   error::ControllerError,
   joystick::{ControllerJoyStickEvent, JOYSTICK_KEYS},

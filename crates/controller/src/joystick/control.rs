@@ -1,4 +1,4 @@
-use crate::controller::{
+use crate::{
   Controller,
   joystick::{
     ControllerJoyStickEvent, JoyStick, axis::JoyStickAxis, polarity::Polarity, vector::Vector,
