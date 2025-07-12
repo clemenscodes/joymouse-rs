@@ -19,8 +19,8 @@ use std::{
 
 use epoll::{Event, Events};
 use evdev::{
-  AbsInfo, AbsoluteAxisCode, AttributeSet, BusType, Device, EventType, InputEvent, InputId,
-  KeyCode, MiscCode, RelativeAxisCode, UinputAbsSetup, uinput::VirtualDevice,
+  uinput::VirtualDevice, AbsInfo, AbsoluteAxisCode, AttributeSet, BusType, Device, EventType,
+  InputEvent, InputId, KeyCode, MiscCode, RelativeAxisCode, UinputAbsSetup,
 };
 
 #[derive(Debug)]

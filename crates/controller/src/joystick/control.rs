@@ -1,9 +1,9 @@
 use crate::{
-  Controller,
   joystick::{
-    ControllerJoyStickEvent, JoyStick, axis::JoyStickAxis, polarity::Polarity, vector::Vector,
+    axis::JoyStickAxis, polarity::Polarity, vector::Vector, ControllerJoyStickEvent, JoyStick,
   },
   state::State,
+  Controller,
 };
 
 impl Controller {
@@ -24,12 +24,11 @@ impl Controller {
       let vector = self.right_stick.lock().unwrap().micro(vector);
       self.move_right_stick(vector);
     } else {
-      let (x, y) = {
+      let vector = {
         let mut stick = self.left_stick.lock().unwrap();
-        stick.tilt(vector);
-        (stick.x(), stick.y())
+        stick.tilt(vector)
       };
-      self.move_left_stick(Vector::new(x, y), None);
+      self.move_left_stick(vector, None);
     }
   }
 
