@@ -112,6 +112,7 @@ version = "0.1.0"
 dependencies = [
  "epoll",
  "evdev",
+ "key",
  "settings",
 ]
 
@@ -321,6 +322,7 @@ dependencies = [
 name = "key"
 version = "0.1.0"
 dependencies = [
+ "evdev",
  "serde",
 ]
 

@@ -119,15 +119,54 @@ impl TryFrom<&str> for AlphabeticKey {
   }
 }
 
+#[cfg(not(windows))]
+impl TryFrom<evdev::KeyCode> for AlphabeticKey {
+  type Error = AlphabeticKeyError;
+
+  fn try_from(code: evdev::KeyCode) -> Result<Self, Self::Error> {
+    Ok(match code {
+      evdev::KeyCode::KEY_A => Self::A,
+      evdev::KeyCode::KEY_B => Self::B,
+      evdev::KeyCode::KEY_C => Self::C,
+      evdev::KeyCode::KEY_D => Self::D,
+      evdev::KeyCode::KEY_E => Self::E,
+      evdev::KeyCode::KEY_F => Self::F,
+      evdev::KeyCode::KEY_G => Self::G,
+      evdev::KeyCode::KEY_H => Self::H,
+      evdev::KeyCode::KEY_I => Self::I,
+      evdev::KeyCode::KEY_J => Self::J,
+      evdev::KeyCode::KEY_K => Self::K,
+      evdev::KeyCode::KEY_L => Self::L,
+      evdev::KeyCode::KEY_M => Self::M,
+      evdev::KeyCode::KEY_N => Self::N,
+      evdev::KeyCode::KEY_O => Self::O,
+      evdev::KeyCode::KEY_P => Self::P,
+      evdev::KeyCode::KEY_Q => Self::Q,
+      evdev::KeyCode::KEY_R => Self::R,
+      evdev::KeyCode::KEY_S => Self::S,
+      evdev::KeyCode::KEY_T => Self::T,
+      evdev::KeyCode::KEY_U => Self::U,
+      evdev::KeyCode::KEY_V => Self::V,
+      evdev::KeyCode::KEY_W => Self::W,
+      evdev::KeyCode::KEY_X => Self::X,
+      evdev::KeyCode::KEY_Y => Self::Y,
+      evdev::KeyCode::KEY_Z => Self::Z,
+      _ => return Err(AlphabeticKeyError::InvalidCode(code.code())),
+    })
+  }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AlphabeticKeyError {
   InvalidKey(char),
+  InvalidCode(u16),
 }
 
 impl std::fmt::Display for AlphabeticKeyError {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     match self {
-      Self::InvalidKey(c) => write!(f, "invalid alphabetic key: '{}'", c),
+      Self::InvalidKey(key) => write!(f, "invalid alphabetic key: '{}'", key),
+      Self::InvalidCode(code) => write!(f, "invalid alphabetic code: '{}'", code),
     }
   }
 }
@@ -175,5 +214,25 @@ mod tests {
     let key = AlphabeticKey::F;
     assert_eq!(key.as_str(), "f");
     assert_eq!(key.to_string(), "f");
+  }
+
+  #[cfg(not(windows))]
+  mod keycode_tests {
+    use super::*;
+    use evdev::KeyCode;
+
+    #[test]
+    fn test_valid_keycodes() {
+      assert_eq!(AlphabeticKey::try_from(KeyCode::KEY_A).unwrap(), AlphabeticKey::A);
+      assert_eq!(AlphabeticKey::try_from(KeyCode::KEY_Z).unwrap(), AlphabeticKey::Z);
+    }
+
+    #[test]
+    fn test_invalid_keycode() {
+      let result = AlphabeticKey::try_from(KeyCode::KEY_1);
+      assert!(
+        matches!(result, Err(AlphabeticKeyError::InvalidCode(code)) if code == KeyCode::KEY_1.code())
+      );
+    }
   }
 }

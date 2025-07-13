@@ -34,6 +34,21 @@ impl TryFrom<&str> for SystemKey {
   }
 }
 
+#[cfg(not(windows))]
+impl TryFrom<evdev::KeyCode> for SystemKey {
+  type Error = SystemKeyError;
+
+  fn try_from(code: evdev::KeyCode) -> Result<Self, Self::Error> {
+    Ok(match code {
+      evdev::KeyCode::KEY_ENTER => Self::Enter,
+      evdev::KeyCode::KEY_TAB => Self::Tab,
+      evdev::KeyCode::KEY_SPACE => Self::Space,
+      evdev::KeyCode::KEY_BACKSPACE => Self::Backspace,
+      _ => return Err(SystemKeyError::InvalidCode(code.code())),
+    })
+  }
+}
+
 impl std::fmt::Display for SystemKey {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     f.write_str(self.as_str())
@@ -43,17 +58,15 @@ impl std::fmt::Display for SystemKey {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SystemKeyError {
   InvalidKey(String),
+  InvalidCode(u16),
 }
 
 impl std::fmt::Display for SystemKeyError {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    write!(
-      f,
-      "invalid system key: '{}'",
-      match self {
-        Self::InvalidKey(s) => s,
-      }
-    )
+    match self {
+      Self::InvalidKey(s) => write!(f, "invalid system key: '{}'", s),
+      Self::InvalidCode(code) => write!(f, "invalid system key code: '{}'", code),
+    }
   }
 }
 
@@ -85,5 +98,26 @@ mod tests {
 
     assert_eq!(SystemKey::Space.as_str(), "space");
     assert_eq!(SystemKey::Space.to_string(), "space");
+  }
+
+  #[cfg(not(windows))]
+  mod keycode_tests {
+    use super::*;
+
+    #[test]
+    fn test_keycode_to_system_key_valid() {
+      assert_eq!(SystemKey::try_from(evdev::KeyCode::KEY_ENTER).unwrap(), SystemKey::Enter);
+      assert_eq!(SystemKey::try_from(evdev::KeyCode::KEY_TAB).unwrap(), SystemKey::Tab);
+      assert_eq!(SystemKey::try_from(evdev::KeyCode::KEY_SPACE).unwrap(), SystemKey::Space);
+      assert_eq!(SystemKey::try_from(evdev::KeyCode::KEY_BACKSPACE).unwrap(), SystemKey::Backspace);
+    }
+
+    #[test]
+    fn test_keycode_to_system_key_invalid() {
+      let err = SystemKey::try_from(evdev::KeyCode::KEY_A).unwrap_err();
+      assert!(
+        matches!(err, SystemKeyError::InvalidCode(code) if code == evdev::KeyCode::KEY_A.code())
+      );
+    }
   }
 }
