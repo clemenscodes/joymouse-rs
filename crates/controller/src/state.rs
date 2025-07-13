@@ -19,18 +19,6 @@ impl State {
       State::Held => 2,
     }
   }
-
-  pub fn is_released(&self) -> bool {
-    matches!(self, Self::Released)
-  }
-
-  pub fn is_pressed(&self) -> bool {
-    matches!(self, Self::Pressed)
-  }
-
-  pub fn is_held(&self) -> bool {
-    matches!(self, Self::Held)
-  }
 }
 
 impl TryFrom<i32> for State {
