@@ -1,26 +1,30 @@
 mod alphabetic;
 mod arrow;
 mod button;
+mod error;
+mod event;
 mod function;
 mod modifier;
 mod mouse;
 mod numeric;
+mod state;
 mod system;
 
-pub use crate::{
-  alphabetic::{AlphabeticKey, AlphabeticKeyError},
-  arrow::{ArrowKey, ArrowKeyError},
-  function::{FunctionKey, FunctionKeyError},
-  modifier::{ModifierKey, ModifierKeyError},
-  mouse::{MouseKey, MouseKeyError},
-  numeric::{NumericKey, NumericKeyError},
-  system::{SystemKey, SystemKeyError},
-};
+pub use alphabetic::{AlphabeticKey, AlphabeticKeyError};
+pub use arrow::{ArrowKey, ArrowKeyError};
+pub use error::KeyError;
+pub use event::KeyEvent;
+pub use function::{FunctionKey, FunctionKeyError};
+pub use modifier::{ModifierKey, ModifierKeyError};
+pub use mouse::{MouseKey, MouseKeyError};
+pub use numeric::{NumericKey, NumericKeyError};
+pub use state::KeyState;
+pub use system::{SystemKey, SystemKeyError};
 
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case", tag = "group", content = "key")]
+#[serde(rename_all = "snake_case")]
 pub enum Key {
   Alphabetic(AlphabeticKey),
   Numeric(NumericKey),
@@ -132,75 +136,6 @@ impl std::fmt::Display for Key {
     write!(f, "{}", self.as_str())
   }
 }
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum KeyError {
-  Alphabetic(AlphabeticKeyError),
-  Numeric(NumericKeyError),
-  Function(FunctionKeyError),
-  Arrow(ArrowKeyError),
-  Modifier(ModifierKeyError),
-  System(SystemKeyError),
-  Mouse(MouseKeyError),
-}
-
-impl From<MouseKeyError> for KeyError {
-  fn from(v: MouseKeyError) -> Self {
-    Self::Mouse(v)
-  }
-}
-
-impl From<SystemKeyError> for KeyError {
-  fn from(v: SystemKeyError) -> Self {
-    Self::System(v)
-  }
-}
-
-impl From<ModifierKeyError> for KeyError {
-  fn from(v: ModifierKeyError) -> Self {
-    Self::Modifier(v)
-  }
-}
-
-impl From<ArrowKeyError> for KeyError {
-  fn from(v: ArrowKeyError) -> Self {
-    Self::Arrow(v)
-  }
-}
-
-impl From<FunctionKeyError> for KeyError {
-  fn from(v: FunctionKeyError) -> Self {
-    Self::Function(v)
-  }
-}
-
-impl From<NumericKeyError> for KeyError {
-  fn from(v: NumericKeyError) -> Self {
-    Self::Numeric(v)
-  }
-}
-
-impl From<AlphabeticKeyError> for KeyError {
-  fn from(v: AlphabeticKeyError) -> Self {
-    Self::Alphabetic(v)
-  }
-}
-
-impl std::fmt::Display for KeyError {
-  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    match self {
-      Self::Alphabetic(e) => write!(f, "alphabetic key error: {e}"),
-      Self::Numeric(e) => write!(f, "numeric key error: {e}"),
-      Self::Function(e) => write!(f, "function key error: {e}"),
-      Self::Arrow(e) => write!(f, "arrow key error: {e}"),
-      Self::Modifier(e) => write!(f, "modifier key error: {e}"),
-      Self::System(e) => write!(f, "system key error: {e}"),
-      Self::Mouse(e) => write!(f, "mouse key error: {e}"),
-    }
-  }
-}
-
-impl std::error::Error for KeyError {}
 
 #[cfg(test)]
 mod tests {
