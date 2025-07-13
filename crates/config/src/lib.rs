@@ -8,6 +8,10 @@ use config::{Config, File};
 use directories::BaseDirs;
 use serde::{Deserialize, Serialize};
 
+pub const MAX_STICK_TILT: f64 = 32767.0;
+pub const MIN_STICK_TILT: f64 = -32768.0;
+pub const LEFT_STICK_SENSITIVITY: f64 = 10000.0;
+
 fn config() -> &'static Config {
   static CONFIG: OnceLock<Config> = OnceLock::new();
   CONFIG.get_or_init(|| {
@@ -41,72 +45,60 @@ fn config() -> &'static Config {
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub struct ControllerSettings {
-  name: String,
-  vendor: u16,
-  product: u16,
-  version: u16,
-  max_stick_tilt: f64,
-  min_stick_tilt: f64,
-  deadzone: f64,
-  noise_tolerance: f64,
-
   #[serde(deserialize_with = "from_millis", serialize_with = "to_millis")]
   tickrate: Duration,
-
-  left_stick_sensitivity: f64,
-  right_stick_sensitivity: f64,
-  blend: f64,
-
   #[serde(deserialize_with = "from_millis", serialize_with = "to_millis")]
   mouse_idle_timeout: Duration,
-
   max_tilt_range: f64,
   min_tilt_range: f64,
+  sensitivity: f64,
+  blend: f64,
+  diagonal_boost: f64,
+  angle_delta_limit: f64,
+  speed_stabilize_threshold: f64,
+  min_speed_clamp: f64,
+  max_speed_clamp: f64,
+  motion_threshold_micro_macro: f64,
+  motion_threshold_macro_flick: f64,
+  motion_threshold_macro_micro: f64,
+  motion_threshold_micro_macro_recover: f64,
+}
+
+impl Default for ControllerSettings {
+  fn default() -> Self {
+    let tickrate = Duration::from_millis(16);
+    let mouse_idle_timeout = tickrate * 4;
+    let minimum_tilt = 0.4;
+    let maximum_tilt = 1.0;
+    let max_tilt_range = MAX_STICK_TILT * maximum_tilt;
+    let min_tilt_range = MAX_STICK_TILT * minimum_tilt;
+    Self {
+      tickrate,
+      mouse_idle_timeout,
+      max_tilt_range: max_tilt_range.round(),
+      min_tilt_range: min_tilt_range.round(),
+      sensitivity: 7.0,
+      blend: 0.2,
+      diagonal_boost: 1.41,
+      angle_delta_limit: 0.5,
+      speed_stabilize_threshold: 200.0,
+      min_speed_clamp: 1.0,
+      max_speed_clamp: 500.0,
+      motion_threshold_micro_macro: 0.025,
+      motion_threshold_macro_flick: 0.5,
+      motion_threshold_macro_micro: 0.03,
+      motion_threshold_micro_macro_recover: 0.01,
+    }
+  }
 }
 
 impl ControllerSettings {
-  pub fn name(&self) -> &str {
-    &self.name
-  }
-
-  pub const fn vendor(&self) -> u16 {
-    self.vendor
-  }
-
-  pub const fn product(&self) -> u16 {
-    self.product
-  }
-
-  pub const fn version(&self) -> u16 {
-    self.version
-  }
-
-  pub const fn max_stick_tilt(&self) -> f64 {
-    self.max_stick_tilt
-  }
-
-  pub const fn min_stick_tilt(&self) -> f64 {
-    self.min_stick_tilt
-  }
-
-  pub const fn deadzone(&self) -> f64 {
-    self.deadzone
-  }
-
-  pub const fn noise_tolerance(&self) -> f64 {
-    self.noise_tolerance
-  }
-
   pub const fn tickrate(&self) -> Duration {
     self.tickrate
   }
 
-  pub const fn left_stick_sensitivity(&self) -> f64 {
-    self.left_stick_sensitivity
-  }
-
-  pub const fn right_stick_sensitivity(&self) -> f64 {
-    self.right_stick_sensitivity
+  pub const fn sensitivity(&self) -> f64 {
+    self.sensitivity
   }
 
   pub const fn blend(&self) -> f64 {
@@ -124,44 +116,41 @@ impl ControllerSettings {
   pub fn min_tilt_range(&self) -> f64 {
     self.min_tilt_range
   }
-}
 
-impl Default for ControllerSettings {
-  fn default() -> Self {
-    let name = "JoyMouse".to_string();
-    let vendor = 0x1234;
-    let product = 0x5678;
-    let version = 0x0100;
-    let deadzone = 0.0;
-    let noise_tolerance = 0.0;
-    let tickrate = Duration::from_millis(16);
-    let mouse_idle_timeout = tickrate * 4;
-    let left_stick_sensitivity = 10000.0;
-    let right_stick_sensitivity = 7.0;
-    let max_stick_tilt = 32767.0;
-    let min_stick_tilt = -32768.0;
-    let minimum_tilt = 0.4;
-    let maximum_tilt = 1.0;
-    let blend = 0.2;
-    let max_tilt_range = max_stick_tilt * maximum_tilt;
-    let min_tilt_range = max_stick_tilt * minimum_tilt;
-    Self {
-      name,
-      vendor,
-      product,
-      version,
-      max_stick_tilt,
-      min_stick_tilt,
-      deadzone,
-      noise_tolerance,
-      tickrate,
-      left_stick_sensitivity,
-      right_stick_sensitivity,
-      blend,
-      mouse_idle_timeout,
-      max_tilt_range,
-      min_tilt_range,
-    }
+  pub fn diagonal_boost(&self) -> f64 {
+    self.diagonal_boost
+  }
+
+  pub fn angle_delta_limit(&self) -> f64 {
+    self.angle_delta_limit
+  }
+
+  pub fn speed_stabilize_threshold(&self) -> f64 {
+    self.speed_stabilize_threshold
+  }
+
+  pub fn min_speed_clamp(&self) -> f64 {
+    self.min_speed_clamp
+  }
+
+  pub fn max_speed_clamp(&self) -> f64 {
+    self.max_speed_clamp
+  }
+
+  pub fn motion_threshold_micro_macro(&self) -> f64 {
+    self.motion_threshold_micro_macro
+  }
+
+  pub fn motion_threshold_macro_flick(&self) -> f64 {
+    self.motion_threshold_macro_flick
+  }
+
+  pub fn motion_threshold_macro_micro(&self) -> f64 {
+    self.motion_threshold_macro_micro
+  }
+
+  pub fn motion_threshold_micro_macro_recover(&self) -> f64 {
+    self.motion_threshold_micro_macro_recover
   }
 }
 

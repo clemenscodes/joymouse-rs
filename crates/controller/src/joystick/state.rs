@@ -5,7 +5,7 @@ use crate::{
   state::State,
 };
 
-use config::SETTINGS;
+use config::{LEFT_STICK_SENSITIVITY, MAX_STICK_TILT, SETTINGS};
 
 #[derive(Debug)]
 pub struct JoyStickState {
@@ -48,14 +48,12 @@ impl JoyStickState {
   pub fn tilt(&mut self, vector: Vector) -> Vector {
     self.last_event = Instant::now();
 
-    let sensitivity = SETTINGS.left_stick_sensitivity();
-
-    self.x += vector.dx() * sensitivity;
-    self.y += vector.dy() * sensitivity;
+    self.x += vector.dx() * LEFT_STICK_SENSITIVITY;
+    self.y += vector.dy() * LEFT_STICK_SENSITIVITY;
 
     let magnitude = (self.x.powi(2) + self.y.powi(2)).sqrt();
-    if magnitude > SETTINGS.max_stick_tilt() {
-      let scale = SETTINGS.max_stick_tilt() / magnitude;
+    if magnitude > MAX_STICK_TILT {
+      let scale = MAX_STICK_TILT / magnitude;
       self.x = (self.x * scale).round();
       self.y = (self.y * scale).round();
     }
@@ -72,9 +70,11 @@ impl JoyStickState {
     if self.mouse_events.len() >= 2 {
       let vector = Vector::sum(&self.mouse_events);
       let raw_speed = (vector.dx().powi(2) + vector.dy().powi(2)).sqrt();
-      let scaled_speed = raw_speed * SETTINGS.right_stick_sensitivity();
-      let clamped_speed = scaled_speed.clamp(1.0, 500.0);
-      let normalized_speed = (clamped_speed - 1.0) / 499.0;
+      let scaled_speed = raw_speed * SETTINGS.sensitivity();
+      let clamped_speed =
+        scaled_speed.clamp(SETTINGS.min_speed_clamp(), SETTINGS.max_speed_clamp());
+      let normalized_speed =
+        (clamped_speed - SETTINGS.min_speed_clamp()) / SETTINGS.max_speed_clamp() - 1.0;
 
       self.motion_history.push(normalized_speed);
 
@@ -86,14 +86,20 @@ impl JoyStickState {
         self.motion_history.iter().copied().sum::<f64>() / self.motion_history.len() as f64;
 
       let motion = match avg_speed {
-        s if s >= 0.5 => Motion::Flick,
-        s if s >= 0.025 => Motion::Macro,
+        s if s >= SETTINGS.motion_threshold_macro_flick() => Motion::Flick,
+        s if s >= SETTINGS.motion_threshold_micro_macro() => Motion::Macro,
         _ => Motion::Micro,
       };
 
       self.motion = match (self.motion, motion) {
-        (Motion::Macro, Motion::Micro) if avg_speed > 0.01 => Motion::Macro,
-        (Motion::Micro, Motion::Macro) if avg_speed < 0.03 => Motion::Micro,
+        (Motion::Macro, Motion::Micro)
+          if avg_speed > SETTINGS.motion_threshold_micro_macro_recover() =>
+        {
+          Motion::Macro
+        }
+        (Motion::Micro, Motion::Macro) if avg_speed < SETTINGS.motion_threshold_macro_micro() => {
+          Motion::Micro
+        }
         (_, motion) => motion,
       };
 
@@ -123,16 +129,18 @@ impl JoyStickState {
 
     let vector = Vector::sum(&self.mouse_events);
     let raw_speed = (vector.dx().powi(2) + vector.dy().powi(2)).sqrt();
-    let sensitivity = SETTINGS.right_stick_sensitivity();
+    let sensitivity = SETTINGS.sensitivity();
     let scaled_speed = raw_speed * sensitivity;
-    let clamped_speed = scaled_speed.clamp(1.0, 500.0);
-    let normalized_speed = (clamped_speed - 1.0) / 499.0;
+    let clamped_speed = scaled_speed.clamp(SETTINGS.min_speed_clamp(), SETTINGS.max_speed_clamp());
+    let normalized_speed =
+      (clamped_speed - SETTINGS.min_speed_clamp()) / (SETTINGS.max_speed_clamp() - 1.0);
+
     let min_tilt = SETTINGS.min_tilt_range();
     let max_tilt = SETTINGS.max_tilt_range();
     let tilt = min_tilt + (max_tilt - min_tilt) * normalized_speed;
 
     let diagonal_boost = if vector.dx().abs() > 0.0 && vector.dy().abs() > 0.0 {
-      1.41
+      SETTINGS.diagonal_boost()
     } else {
       1.0
     };
@@ -153,7 +161,6 @@ impl JoyStickState {
   fn update_smoothed_position(&mut self, vector: Vector, blend: f64) {
     let prev = self.vector();
     let min_tilt = SETTINGS.min_tilt_range();
-    let max_tilt = SETTINGS.max_stick_tilt();
 
     let x = (1.0 - blend) * prev.dx() + blend * vector.dx();
     let y = (1.0 - blend) * prev.dy() + blend * vector.dy();
@@ -163,7 +170,7 @@ impl JoyStickState {
     let angle = match self.angle {
       Some(prev_angle) => {
         let delta = ((angle - prev_angle + 180.0) % 360.0) - 180.0;
-        if delta.abs() < 0.5 {
+        if delta.abs() < SETTINGS.angle_delta_limit() {
           prev_angle
         } else {
           self.angle = Some(angle);
@@ -182,7 +189,7 @@ impl JoyStickState {
     let last_mag = (prev.dx().powi(2) + prev.dy().powi(2)).sqrt();
     let speed_delta = (mag - last_mag).abs();
 
-    let stable_mag = if speed_delta < 200.0 {
+    let stable_mag = if speed_delta < SETTINGS.speed_stabilize_threshold() {
       last_mag
     } else {
       mag
@@ -199,8 +206,8 @@ impl JoyStickState {
 
     let length = (final_x.powi(2) + final_y.powi(2)).sqrt();
 
-    if length > max_tilt {
-      let scale = max_tilt / length;
+    if length > MAX_STICK_TILT {
+      let scale = MAX_STICK_TILT / length;
       final_x *= scale;
       final_y *= scale;
     }

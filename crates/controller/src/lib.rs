@@ -10,7 +10,7 @@ use crate::{
   joystick::{Direction, JoyStick, JoyStickAxis, JoyStickState, Vector},
 };
 
-use config::SETTINGS;
+use config::{MAX_STICK_TILT, MIN_STICK_TILT, SETTINGS};
 
 use std::{
   collections::HashMap,
@@ -53,10 +53,15 @@ impl Controller {
   fn try_create() -> Result<Self, Box<dyn std::error::Error>> {
     let builder = VirtualDevice::builder()?;
 
+    let name = "JoyMouse";
     let bus_type = BusType::BUS_USB;
-    let vendor = SETTINGS.vendor();
-    let product = SETTINGS.product();
-    let version = SETTINGS.version();
+    let vendor = 0x1234;
+    let product = 0x5678;
+    let version = 0x0100;
+    let deadzone = 0;
+    let noise_tolerance = 0;
+    let min = MIN_STICK_TILT as i32;
+    let max = MAX_STICK_TILT as i32;
     let input_id = InputId::new(bus_type, vendor, product, version);
 
     let mut button_set = AttributeSet::<KeyCode>::new();
@@ -85,21 +90,14 @@ impl Controller {
       button_set.insert(button);
     }
 
-    let axis_info = AbsInfo::new(
-      0,
-      SETTINGS.min_stick_tilt() as i32,
-      SETTINGS.max_stick_tilt() as i32,
-      SETTINGS.noise_tolerance() as i32,
-      SETTINGS.deadzone() as i32,
-      0,
-    );
+    let axis_info = AbsInfo::new(0, min, max, noise_tolerance, deadzone, 0);
     let x_axis = UinputAbsSetup::new(AbsoluteAxisCode::ABS_X, axis_info);
     let y_axis = UinputAbsSetup::new(AbsoluteAxisCode::ABS_Y, axis_info);
     let rx_axis = UinputAbsSetup::new(AbsoluteAxisCode::ABS_RX, axis_info);
     let ry_axis = UinputAbsSetup::new(AbsoluteAxisCode::ABS_RY, axis_info);
 
     let virtual_device = builder
-      .name(SETTINGS.name())
+      .name(name)
       .input_id(input_id)
       .with_keys(&button_set)?
       .with_absolute_axis(&x_axis)?
@@ -206,7 +204,7 @@ impl Controller {
     };
 
     if let Some(direction) = maybe_direction {
-      let vector = Vector::from(direction) * SETTINGS.left_stick_sensitivity();
+      let vector = Vector::from(direction) * config::LEFT_STICK_SENSITIVITY;
 
       let vector = {
         let mut stick = self.left_stick_mut().lock().unwrap();
