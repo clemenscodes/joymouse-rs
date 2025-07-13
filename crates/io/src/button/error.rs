@@ -1,4 +1,4 @@
-use crate::key::{button::ControllerButton, KeyError};
+use crate::{ControllerButton, KeyError};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ButtonError {
