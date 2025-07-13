@@ -74,7 +74,7 @@ impl JoyStickState {
       let clamped_speed =
         scaled_speed.clamp(SETTINGS.min_speed_clamp(), SETTINGS.max_speed_clamp());
       let normalized_speed =
-        (clamped_speed - SETTINGS.min_speed_clamp()) / SETTINGS.max_speed_clamp() - 1.0;
+        (clamped_speed - SETTINGS.min_speed_clamp()) / (SETTINGS.max_speed_clamp() - 1.0);
 
       self.motion_history.push(normalized_speed);
 
