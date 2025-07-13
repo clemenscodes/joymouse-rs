@@ -53,7 +53,7 @@ impl TryFrom<u8> for NumericKey {
       7 => Ok(Self::Num7),
       8 => Ok(Self::Num8),
       9 => Ok(Self::Num9),
-      other => Err(NumericKeyError::InvalidDigit(other)),
+      other => Err(NumericKeyError::Digit(other)),
     }
   }
 }
@@ -73,7 +73,7 @@ impl TryFrom<char> for NumericKey {
       '7' => Ok(Self::Num7),
       '8' => Ok(Self::Num8),
       '9' => Ok(Self::Num9),
-      _ => Err(NumericKeyError::InvalidKey(c)),
+      _ => Err(NumericKeyError::Key(c)),
     }
   }
 }
@@ -86,22 +86,45 @@ impl TryFrom<&str> for NumericKey {
       let ch = value.chars().next().unwrap();
       Self::try_from(ch)
     } else {
-      Err(NumericKeyError::InvalidKey(value.chars().next().unwrap()))
+      Err(NumericKeyError::Key(value.chars().next().unwrap()))
     }
+  }
+}
+
+#[cfg(not(windows))]
+impl TryFrom<evdev::KeyCode> for NumericKey {
+  type Error = NumericKeyError;
+
+  fn try_from(code: evdev::KeyCode) -> Result<Self, Self::Error> {
+    Ok(match code {
+      evdev::KeyCode::KEY_0 => Self::Num0,
+      evdev::KeyCode::KEY_1 => Self::Num1,
+      evdev::KeyCode::KEY_2 => Self::Num2,
+      evdev::KeyCode::KEY_3 => Self::Num3,
+      evdev::KeyCode::KEY_4 => Self::Num4,
+      evdev::KeyCode::KEY_5 => Self::Num5,
+      evdev::KeyCode::KEY_6 => Self::Num6,
+      evdev::KeyCode::KEY_7 => Self::Num7,
+      evdev::KeyCode::KEY_8 => Self::Num8,
+      evdev::KeyCode::KEY_9 => Self::Num9,
+      _ => return Err(NumericKeyError::Code(code.code())),
+    })
   }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum NumericKeyError {
-  InvalidDigit(u8),
-  InvalidKey(char),
+  Digit(u8),
+  Key(char),
+  Code(u16),
 }
 
 impl std::fmt::Display for NumericKeyError {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     match self {
-      Self::InvalidDigit(n) => write!(f, "invalid numeric key: '{}'", n),
-      Self::InvalidKey(key) => write!(f, "invalid numeric char: '{}'", key),
+      Self::Digit(n) => write!(f, "invalid numeric key: '{}'", n),
+      Self::Key(key) => write!(f, "invalid numeric char: '{}'", key),
+      Self::Code(code) => write!(f, "invalid numeric key code: '{}'", code),
     }
   }
 }
@@ -122,8 +145,8 @@ mod tests {
 
   #[test]
   fn test_try_from_u8_invalid() {
-    assert!(matches!(NumericKey::try_from(10), Err(NumericKeyError::InvalidDigit(10))));
-    assert!(matches!(NumericKey::try_from(255), Err(NumericKeyError::InvalidDigit(255))));
+    assert!(matches!(NumericKey::try_from(10), Err(NumericKeyError::Digit(10))));
+    assert!(matches!(NumericKey::try_from(255), Err(NumericKeyError::Digit(255))));
   }
 
   #[test]
@@ -134,8 +157,8 @@ mod tests {
 
   #[test]
   fn test_try_from_char_invalid() {
-    assert!(matches!(NumericKey::try_from('x'), Err(NumericKeyError::InvalidKey('x'))));
-    assert!(matches!(NumericKey::try_from(' '), Err(NumericKeyError::InvalidKey(' '))));
+    assert!(matches!(NumericKey::try_from('x'), Err(NumericKeyError::Key('x'))));
+    assert!(matches!(NumericKey::try_from(' '), Err(NumericKeyError::Key(' '))));
   }
 
   #[test]
@@ -146,8 +169,8 @@ mod tests {
 
   #[test]
   fn test_try_from_str_invalid() {
-    assert!(matches!(NumericKey::try_from("x"), Err(NumericKeyError::InvalidKey('x'))));
-    assert!(matches!(NumericKey::try_from("12"), Err(NumericKeyError::InvalidKey('1'))));
+    assert!(matches!(NumericKey::try_from("x"), Err(NumericKeyError::Key('x'))));
+    assert!(matches!(NumericKey::try_from("12"), Err(NumericKeyError::Key('1'))));
   }
 
   #[test]
@@ -157,5 +180,23 @@ mod tests {
 
     assert_eq!(NumericKey::Num0.as_str(), "0");
     assert_eq!(NumericKey::Num0.to_string(), "0");
+  }
+
+  #[cfg(not(windows))]
+  mod keycode_tests {
+    use super::*;
+
+    #[test]
+    fn test_numeric_key_from_keycode_valid() {
+      assert_eq!(NumericKey::try_from(evdev::KeyCode::KEY_0).unwrap(), NumericKey::Num0);
+      assert_eq!(NumericKey::try_from(evdev::KeyCode::KEY_3).unwrap(), NumericKey::Num3);
+      assert_eq!(NumericKey::try_from(evdev::KeyCode::KEY_9).unwrap(), NumericKey::Num9);
+    }
+
+    #[test]
+    fn test_numeric_key_from_keycode_invalid() {
+      let err = NumericKey::try_from(evdev::KeyCode::KEY_A).unwrap_err();
+      assert!(matches!(err, NumericKeyError::Code(code) if code == evdev::KeyCode::KEY_A.code()));
+    }
   }
 }

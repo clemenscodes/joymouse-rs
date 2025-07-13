@@ -6,7 +6,7 @@ mod mouse;
 mod numeric;
 mod system;
 
-use crate::{
+pub use crate::{
   alphabetic::{AlphabeticKey, AlphabeticKeyError},
   arrow::{ArrowKey, ArrowKeyError},
   function::{FunctionKey, FunctionKeyError},
@@ -105,6 +105,23 @@ impl TryFrom<&str> for Key {
       .or_else(|_| ModifierKey::try_from(value).map(Self::Modifier))
       .or_else(|_| SystemKey::try_from(value).map(Self::System))
       .or_else(|_| MouseKey::try_from(value).map(Self::Mouse))?;
+    Ok(key)
+  }
+}
+
+#[cfg(not(windows))]
+impl TryFrom<evdev::KeyCode> for Key {
+  type Error = KeyError;
+
+  fn try_from(code: evdev::KeyCode) -> Result<Self, Self::Error> {
+    let key = AlphabeticKey::try_from(code)
+      .map(Self::Alphabetic)
+      .or_else(|_| NumericKey::try_from(code).map(Self::Numeric))
+      .or_else(|_| FunctionKey::try_from(code).map(Self::Function))
+      .or_else(|_| ArrowKey::try_from(code).map(Self::Arrow))
+      .or_else(|_| ModifierKey::try_from(code).map(Self::Modifier))
+      .or_else(|_| SystemKey::try_from(code).map(Self::System))
+      .or_else(|_| MouseKey::try_from(code).map(Self::Mouse))?;
     Ok(key)
   }
 }
@@ -251,5 +268,40 @@ mod tests {
 
     let modkey: Key = ModifierKey::Shift.into();
     assert_eq!(modkey, Key::Modifier(ModifierKey::Shift));
+  }
+
+  #[cfg(not(windows))]
+  mod keycode_tests {
+    use super::*;
+    use evdev::KeyCode;
+
+    #[test]
+    fn test_keycode_to_key_conversion() {
+      assert_eq!(Key::try_from(KeyCode::KEY_A).unwrap(), Key::Alphabetic(AlphabeticKey::A));
+      assert_eq!(Key::try_from(KeyCode::KEY_1).unwrap(), Key::Numeric(NumericKey::Num1));
+      assert_eq!(Key::try_from(KeyCode::KEY_F5).unwrap(), Key::Function(FunctionKey::F5));
+      assert_eq!(Key::try_from(KeyCode::KEY_LEFT).unwrap(), Key::Arrow(ArrowKey::Left));
+      assert_eq!(
+        Key::try_from(KeyCode::KEY_LEFTCTRL).unwrap(),
+        Key::Modifier(ModifierKey::LeftCtrl)
+      );
+      assert_eq!(Key::try_from(KeyCode::KEY_SPACE).unwrap(), Key::System(SystemKey::Space));
+      assert_eq!(Key::try_from(KeyCode::BTN_LEFT).unwrap(), Key::Mouse(MouseKey::Left));
+    }
+
+    #[test]
+    fn test_keycode_to_key_invalid() {
+      let err = Key::try_from(KeyCode::KEY_COMPOSE).unwrap_err();
+      assert!(matches!(
+        err,
+        KeyError::Alphabetic(_)
+          | KeyError::Numeric(_)
+          | KeyError::Function(_)
+          | KeyError::Arrow(_)
+          | KeyError::Modifier(_)
+          | KeyError::System(_)
+          | KeyError::Mouse(_)
+      ));
+    }
   }
 }

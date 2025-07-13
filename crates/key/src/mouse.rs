@@ -37,6 +37,22 @@ impl TryFrom<&str> for MouseKey {
   }
 }
 
+#[cfg(not(windows))]
+impl TryFrom<evdev::KeyCode> for MouseKey {
+  type Error = MouseKeyError;
+
+  fn try_from(code: evdev::KeyCode) -> Result<Self, Self::Error> {
+    Ok(match code {
+      evdev::KeyCode::BTN_LEFT => Self::Left,
+      evdev::KeyCode::BTN_RIGHT => Self::Right,
+      evdev::KeyCode::BTN_MIDDLE => Self::Middle,
+      evdev::KeyCode::BTN_SIDE => Self::Side,
+      evdev::KeyCode::BTN_EXTRA => Self::Extra,
+      _ => return Err(MouseKeyError::InvalidCode(code.code())),
+    })
+  }
+}
+
 impl std::fmt::Display for MouseKey {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     f.write_str(self.as_str())
@@ -46,12 +62,14 @@ impl std::fmt::Display for MouseKey {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum MouseKeyError {
   InvalidKey(String),
+  InvalidCode(u16),
 }
 
 impl std::fmt::Display for MouseKeyError {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     match self {
       Self::InvalidKey(s) => write!(f, "invalid mouse key: '{}'", s),
+      Self::InvalidCode(code) => write!(f, "invalid mouse key code: '{}'", code),
     }
   }
 }
@@ -85,5 +103,26 @@ mod tests {
 
     assert_eq!(MouseKey::Right.as_str(), "mouse_right");
     assert_eq!(MouseKey::Right.to_string(), "mouse_right");
+  }
+
+  #[cfg(not(windows))]
+  mod keycode_tests {
+    use super::*;
+    use evdev::KeyCode;
+
+    #[test]
+    fn test_mouse_key_from_evdev_keycode() {
+      assert_eq!(MouseKey::try_from(KeyCode::BTN_LEFT).unwrap(), MouseKey::Left);
+      assert_eq!(MouseKey::try_from(KeyCode::BTN_RIGHT).unwrap(), MouseKey::Right);
+      assert_eq!(MouseKey::try_from(KeyCode::BTN_MIDDLE).unwrap(), MouseKey::Middle);
+      assert_eq!(MouseKey::try_from(KeyCode::BTN_SIDE).unwrap(), MouseKey::Side);
+      assert_eq!(MouseKey::try_from(KeyCode::BTN_EXTRA).unwrap(), MouseKey::Extra);
+    }
+
+    #[test]
+    fn test_invalid_mouse_keycode() {
+      let err = MouseKey::try_from(KeyCode::KEY_A).unwrap_err();
+      assert!(matches!(err, MouseKeyError::InvalidCode(code) if code == KeyCode::KEY_A.code()));
+    }
   }
 }

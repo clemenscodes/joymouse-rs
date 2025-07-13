@@ -53,7 +53,7 @@ impl TryFrom<u8> for FunctionKey {
       10 => Ok(Self::F10),
       11 => Ok(Self::F11),
       12 => Ok(Self::F12),
-      other => Err(FunctionKeyError::InvalidNumber(other)),
+      other => Err(FunctionKeyError::Number(other)),
     }
   }
 }
@@ -67,7 +67,30 @@ impl TryFrom<&str> for FunctionKey {
         return Self::try_from(n);
       }
     }
-    Err(FunctionKeyError::InvalidFormat)
+    Err(FunctionKeyError::Format)
+  }
+}
+
+#[cfg(not(windows))]
+impl TryFrom<evdev::KeyCode> for FunctionKey {
+  type Error = FunctionKeyError;
+
+  fn try_from(code: evdev::KeyCode) -> Result<Self, Self::Error> {
+    Ok(match code {
+      evdev::KeyCode::KEY_F1 => Self::F1,
+      evdev::KeyCode::KEY_F2 => Self::F2,
+      evdev::KeyCode::KEY_F3 => Self::F3,
+      evdev::KeyCode::KEY_F4 => Self::F4,
+      evdev::KeyCode::KEY_F5 => Self::F5,
+      evdev::KeyCode::KEY_F6 => Self::F6,
+      evdev::KeyCode::KEY_F7 => Self::F7,
+      evdev::KeyCode::KEY_F8 => Self::F8,
+      evdev::KeyCode::KEY_F9 => Self::F9,
+      evdev::KeyCode::KEY_F10 => Self::F10,
+      evdev::KeyCode::KEY_F11 => Self::F11,
+      evdev::KeyCode::KEY_F12 => Self::F12,
+      _ => return Err(FunctionKeyError::Code(code.code())),
+    })
   }
 }
 
@@ -79,15 +102,17 @@ impl std::fmt::Display for FunctionKey {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FunctionKeyError {
-  InvalidNumber(u8),
-  InvalidFormat,
+  Number(u8),
+  Format,
+  Code(u16),
 }
 
 impl std::fmt::Display for FunctionKeyError {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     match self {
-      Self::InvalidNumber(n) => write!(f, "invalid function key: f{}", n),
-      Self::InvalidFormat => write!(f, "invalid function key format"),
+      Self::Number(n) => write!(f, "invalid function key: f{}", n),
+      Self::Format => write!(f, "invalid function key format"),
+      Self::Code(code) => write!(f, "invalid function key code: '{}'", code),
     }
   }
 }
@@ -115,13 +140,13 @@ mod tests {
   #[test]
   fn test_out_of_range() {
     match FunctionKey::try_from("f0") {
-      Err(FunctionKeyError::InvalidNumber(0)) => (),
+      Err(FunctionKeyError::Number(0)) => (),
       _ => panic!("Expected InvalidNumber(0)"),
     }
 
     match FunctionKey::try_from("f13") {
-      Err(FunctionKeyError::InvalidNumber(13)) => (),
-      _ => panic!("Expected InvalidNumber(13)"),
+      Err(FunctionKeyError::Number(13)) => (),
+      _ => panic!("Expected Number(13)"),
     }
   }
 
@@ -135,5 +160,26 @@ mod tests {
   fn test_display() {
     assert_eq!(FunctionKey::F3.to_string(), "f3");
     assert_eq!(FunctionKey::F11.to_string(), "f11");
+  }
+
+  #[cfg(not(windows))]
+  mod keycode_tests {
+    use super::*;
+    use evdev::KeyCode;
+
+    #[test]
+    fn test_valid_function_keycodes() {
+      assert_eq!(FunctionKey::try_from(KeyCode::KEY_F1).unwrap(), FunctionKey::F1);
+      assert_eq!(FunctionKey::try_from(KeyCode::KEY_F12).unwrap(), FunctionKey::F12);
+    }
+
+    #[test]
+    fn test_invalid_function_keycode() {
+      let result = FunctionKey::try_from(KeyCode::KEY_A);
+      assert!(matches!(
+        result,
+        Err(FunctionKeyError::Code(code)) if code == KeyCode::KEY_A.code()
+      ));
+    }
   }
 }

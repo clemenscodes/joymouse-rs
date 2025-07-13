@@ -75,6 +75,26 @@ impl TryFrom<&str> for ModifierKey {
   }
 }
 
+#[cfg(not(windows))]
+impl TryFrom<evdev::KeyCode> for ModifierKey {
+  type Error = ModifierKeyError;
+
+  fn try_from(code: evdev::KeyCode) -> Result<Self, Self::Error> {
+    Ok(match code {
+      evdev::KeyCode::KEY_LEFTCTRL => Self::LeftCtrl,
+      evdev::KeyCode::KEY_RIGHTCTRL => Self::RightCtrl,
+      evdev::KeyCode::KEY_LEFTSHIFT => Self::LeftShift,
+      evdev::KeyCode::KEY_RIGHTSHIFT => Self::RightShift,
+      evdev::KeyCode::KEY_LEFTALT => Self::LeftAlt,
+      evdev::KeyCode::KEY_RIGHTALT => Self::RightAlt,
+      evdev::KeyCode::KEY_CAPSLOCK => Self::Caps,
+      evdev::KeyCode::KEY_ESC => Self::Escape,
+      evdev::KeyCode::KEY_LEFTMETA | evdev::KeyCode::KEY_RIGHTMETA => Self::Super,
+      _ => return Err(ModifierKeyError::InvalidCode(code.code())),
+    })
+  }
+}
+
 impl std::fmt::Display for ModifierKey {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     f.write_str(self.as_str())
@@ -84,12 +104,14 @@ impl std::fmt::Display for ModifierKey {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ModifierKeyError {
   InvalidKey(String),
+  InvalidCode(u16),
 }
 
 impl std::fmt::Display for ModifierKeyError {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     match self {
-      Self::InvalidKey(s) => write!(f, "invalid modifier key: '{}'", s),
+      Self::InvalidKey(key) => write!(f, "invalid modifier key: '{}'", key),
+      Self::InvalidCode(code) => write!(f, "invalid modifier code: '{}'", code),
     }
   }
 }
@@ -149,5 +171,31 @@ mod tests {
     let key = ModifierKey::LeftAlt;
     assert_eq!(key.as_str(), "left_alt");
     assert_eq!(key.to_string(), "left_alt");
+  }
+
+  #[cfg(not(windows))]
+  mod keycode_tests {
+    use super::*;
+    use evdev::KeyCode;
+
+    #[test]
+    fn test_keycode_to_modifier_key() {
+      assert_eq!(ModifierKey::try_from(KeyCode::KEY_LEFTCTRL).unwrap(), ModifierKey::LeftCtrl);
+      assert_eq!(ModifierKey::try_from(KeyCode::KEY_RIGHTCTRL).unwrap(), ModifierKey::RightCtrl);
+      assert_eq!(ModifierKey::try_from(KeyCode::KEY_LEFTSHIFT).unwrap(), ModifierKey::LeftShift);
+      assert_eq!(ModifierKey::try_from(KeyCode::KEY_RIGHTSHIFT).unwrap(), ModifierKey::RightShift);
+      assert_eq!(ModifierKey::try_from(KeyCode::KEY_LEFTALT).unwrap(), ModifierKey::LeftAlt);
+      assert_eq!(ModifierKey::try_from(KeyCode::KEY_RIGHTALT).unwrap(), ModifierKey::RightAlt);
+      assert_eq!(ModifierKey::try_from(KeyCode::KEY_ESC).unwrap(), ModifierKey::Escape);
+      assert_eq!(ModifierKey::try_from(KeyCode::KEY_CAPSLOCK).unwrap(), ModifierKey::Caps);
+      assert_eq!(ModifierKey::try_from(KeyCode::KEY_LEFTMETA).unwrap(), ModifierKey::Super);
+      assert_eq!(ModifierKey::try_from(KeyCode::KEY_RIGHTMETA).unwrap(), ModifierKey::Super);
+    }
+
+    #[test]
+    fn test_invalid_keycode_to_modifier_key() {
+      let err = ModifierKey::try_from(KeyCode::KEY_A).unwrap_err();
+      assert!(matches!(err, ModifierKeyError::InvalidCode(code) if code == KeyCode::KEY_A.code()));
+    }
   }
 }

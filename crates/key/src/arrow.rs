@@ -34,6 +34,21 @@ impl TryFrom<&str> for ArrowKey {
   }
 }
 
+#[cfg(not(windows))]
+impl TryFrom<evdev::KeyCode> for ArrowKey {
+  type Error = ArrowKeyError;
+
+  fn try_from(code: evdev::KeyCode) -> Result<Self, Self::Error> {
+    Ok(match code {
+      evdev::KeyCode::KEY_UP => Self::Up,
+      evdev::KeyCode::KEY_DOWN => Self::Down,
+      evdev::KeyCode::KEY_LEFT => Self::Left,
+      evdev::KeyCode::KEY_RIGHT => Self::Right,
+      _ => return Err(ArrowKeyError::InvalidCode(code.code())),
+    })
+  }
+}
+
 impl std::fmt::Display for ArrowKey {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     f.write_str(self.as_str())
@@ -43,12 +58,14 @@ impl std::fmt::Display for ArrowKey {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ArrowKeyError {
   InvalidKey(String),
+  InvalidCode(u16),
 }
 
 impl std::fmt::Display for ArrowKeyError {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     match self {
-      Self::InvalidKey(s) => write!(f, "invalid arrow key: '{}'", s),
+      Self::InvalidKey(key) => write!(f, "invalid arrow key: '{}'", key),
+      Self::InvalidCode(code) => write!(f, "invalid arrow code: '{}'", code),
     }
   }
 }
@@ -81,7 +98,7 @@ mod tests {
     assert!(matches!(err, ArrowKeyError::InvalidKey(s) if s == "center"));
 
     let err = ArrowKey::try_from("").unwrap_err();
-    assert!(matches!(err, ArrowKeyError::InvalidKey(s) if s == ""));
+    assert!(matches!(err, ArrowKeyError::InvalidKey(s) if s.is_empty()));
   }
 
   #[test]
@@ -96,5 +113,18 @@ mod tests {
   fn test_display() {
     assert_eq!(ArrowKey::Left.to_string(), "left");
     assert_eq!(ArrowKey::Right.to_string(), "right");
+  }
+
+  #[cfg(not(windows))]
+  #[test]
+  fn test_valid_keycode_conversion() {
+    assert_eq!(ArrowKey::try_from(evdev::KeyCode::KEY_UP).unwrap(), ArrowKey::Up);
+  }
+
+  #[cfg(not(windows))]
+  #[test]
+  fn test_invalid_keycode_conversion() {
+    let result = ArrowKey::try_from(evdev::KeyCode::KEY_A);
+    assert!(matches!(result, Err(ArrowKeyError::InvalidCode(_))));
   }
 }
