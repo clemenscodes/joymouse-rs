@@ -6,4 +6,4 @@ license = "MIT"
 authors = ["Clemens Horn <me@clemenshorn.com>"]
 
 [dependencies]
-controller = { path = "../controller" }
+platform = { path = "../platform" }
