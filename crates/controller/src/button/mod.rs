@@ -2,7 +2,7 @@ mod control;
 mod error;
 mod event;
 
-use crate::settings::KEYBOARD_BUTTON_MAP;
+use crate::keys::KEYBOARD_BUTTON_MAP;
 use evdev::KeyCode;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]

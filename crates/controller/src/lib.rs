@@ -2,7 +2,7 @@ mod button;
 mod error;
 mod event;
 mod joystick;
-mod settings;
+mod keys;
 mod state;
 
 use crate::{
@@ -10,7 +10,7 @@ use crate::{
   joystick::{Direction, JoyStick, JoyStickAxis, JoyStickState, Vector},
 };
 
-use config::{MAX_STICK_TILT, MIN_STICK_TILT, SETTINGS};
+use settings::{MAX_STICK_TILT, MIN_STICK_TILT, SETTINGS};
 
 use std::{
   collections::HashMap,
@@ -204,7 +204,7 @@ impl Controller {
     };
 
     if let Some(direction) = maybe_direction {
-      let vector = Vector::from(direction) * config::LEFT_STICK_SENSITIVITY;
+      let vector = Vector::from(direction) * settings::LEFT_STICK_SENSITIVITY;
 
       let vector = {
         let mut stick = self.left_stick_mut().lock().unwrap();

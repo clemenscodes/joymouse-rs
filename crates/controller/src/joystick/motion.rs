@@ -1,4 +1,4 @@
-use config::SETTINGS;
+use settings::SETTINGS;
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy, PartialOrd, Ord)]
 pub enum Motion {

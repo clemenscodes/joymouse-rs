@@ -5,7 +5,7 @@ use crate::{
   state::State,
 };
 
-use config::{LEFT_STICK_SENSITIVITY, MAX_STICK_TILT, SETTINGS};
+use settings::{LEFT_STICK_SENSITIVITY, MAX_STICK_TILT, SETTINGS};
 
 #[derive(Debug)]
 pub struct JoyStickState {

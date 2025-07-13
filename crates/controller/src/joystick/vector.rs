@@ -1,6 +1,6 @@
 use crate::joystick::{axis::JoyStickAxis, direction::Direction, polarity::Polarity, JoyStick};
 
-use config::{MAX_STICK_TILT, MIN_STICK_TILT};
+use settings::{MAX_STICK_TILT, MIN_STICK_TILT};
 
 #[derive(Default, Debug, Copy, Clone)]
 pub struct Vector {
