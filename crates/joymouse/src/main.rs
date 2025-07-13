@@ -1,3 +1,3 @@
 fn main() {
-  controller::Controller::run()
+  platform::Controller::run()
 }
