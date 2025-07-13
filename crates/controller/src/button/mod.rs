@@ -1,8 +1,10 @@
 mod error;
+mod event;
 mod state;
 
 pub use error::ButtonError;
 pub use state::State;
+pub use event::ButtonEvent;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ControllerButton {
