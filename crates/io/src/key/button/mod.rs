@@ -1,6 +1,10 @@
+mod error;
+
+pub use error::ButtonError;
+
 use std::{collections::HashMap, sync::LazyLock};
 
-use crate::{AlphabeticKey, ArrowKey, Key, KeyError, ModifierKey, MouseKey, NumericKey, SystemKey};
+use crate::{AlphabeticKey, ArrowKey, Key, ModifierKey, MouseKey, NumericKey, SystemKey};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ControllerButton {
@@ -159,44 +163,3 @@ pub static KEYBOARD_BUTTON_MAP: LazyLock<HashMap<Key, ControllerButton>> = LazyL
     .flat_map(|(button, keys)| keys.iter().map(move |key| (*key, *button)))
     .collect()
 });
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum ButtonError {
-  UnsupportedKeyCode(u16),
-  InvalidButton(ControllerButton),
-  InvalidKey(String),
-}
-
-impl From<KeyError> for ButtonError {
-  fn from(e: KeyError) -> Self {
-    ButtonError::InvalidKey(format!("{}", e))
-  }
-}
-
-impl From<u16> for ButtonError {
-  fn from(v: u16) -> Self {
-    Self::UnsupportedKeyCode(v)
-  }
-}
-
-impl From<ControllerButton> for ButtonError {
-  fn from(v: ControllerButton) -> Self {
-    Self::InvalidButton(v)
-  }
-}
-
-impl std::fmt::Display for ButtonError {
-  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    match self {
-      ButtonError::UnsupportedKeyCode(key_code) => {
-        writeln!(f, "Unsupported key: {:#?}", key_code)
-      }
-      ButtonError::InvalidButton(controller_button) => {
-        writeln!(f, "Invalid controller button: {:#?}", controller_button)
-      }
-      ButtonError::InvalidKey(key) => {
-        writeln!(f, "Invalid key: {:#?}", key)
-      }
-    }
-  }
-}

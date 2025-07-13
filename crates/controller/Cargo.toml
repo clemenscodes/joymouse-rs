@@ -7,7 +7,7 @@ authors.workspace = true
 
 [dependencies]
 settings = { path = "../settings" }
-key = { path = "../key" }
+io = { path = "../io" }
 
 [target.'cfg(not(windows))'.dependencies]
 epoll = "4.3.3"

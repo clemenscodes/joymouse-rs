@@ -112,7 +112,7 @@ version = "0.1.0"
 dependencies = [
  "epoll",
  "evdev",
- "key",
+ "io",
  "settings",
 ]
 
@@ -295,6 +295,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "io"
+version = "0.1.0"
+dependencies = [
+ "evdev",
+ "serde",
+]
+
+[[package]]
 name = "itoa"
 version = "1.0.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -315,14 +323,6 @@ checksum = "96b0db21af676c1ce64250b5f40f3ce2cf27e4e47cb91ed91eb6fe9350b430c1"
 dependencies = [
  "pest",
  "pest_derive",
- "serde",
-]
-
-[[package]]
-name = "key"
-version = "0.1.0"
-dependencies = [
- "evdev",
  "serde",
 ]
 
