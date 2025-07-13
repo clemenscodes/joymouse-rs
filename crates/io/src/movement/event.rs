@@ -1,7 +1,6 @@
-use super::{Movement, Polarity};
+use crate::Movement;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct MovementEvent {
-  kind: Movement,
-  polarity: Polarity,
+  movement: Movement,
 }

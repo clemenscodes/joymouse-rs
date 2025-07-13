@@ -13,4 +13,4 @@ impl std::fmt::Display for PolarityError {
   }
 }
 
-impl std::error::Error for KeyError {}
+impl std::error::Error for PolarityError {}

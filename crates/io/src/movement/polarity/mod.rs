@@ -1,3 +1,7 @@
+mod error;
+
+pub use error::PolarityError;
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum Polarity {
   Positive(i32),

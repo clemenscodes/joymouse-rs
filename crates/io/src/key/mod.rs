@@ -1,6 +1,5 @@
 mod alphabetic;
 mod arrow;
-mod button;
 mod error;
 mod event;
 mod function;
