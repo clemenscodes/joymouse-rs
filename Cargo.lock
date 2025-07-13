@@ -69,16 +69,6 @@ checksum = "613afe47fcd5fac7ccf1db93babcb082c5994d996f20b8b159f2ad1658eb5724"
 
 [[package]]
 name = "config"
-version = "0.1.0"
-dependencies = [
- "config 0.15.13",
- "directories",
- "serde",
- "toml",
-]
-
-[[package]]
-name = "config"
 version = "0.15.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5b1eb4fb07bc7f012422df02766c7bd5971effb894f573865642f06fa3265440"
@@ -120,9 +110,9 @@ dependencies = [
 name = "controller"
 version = "0.1.0"
 dependencies = [
- "config 0.1.0",
  "epoll",
  "evdev",
+ "settings",
 ]
 
 [[package]]
@@ -295,9 +285,9 @@ dependencies = [
 
 [[package]]
 name = "indexmap"
-version = "2.9.0"
+version = "2.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cea70ddb795996207ad57735b50c5982d8844f38ba9ee5f1aedcfb708a2aa11e"
+checksum = "fe4cd85333e22411419a0bcae1297d25e58c9443848b11dc6a86fefe8c78a661"
 dependencies = [
  "equivalent",
  "hashbrown 0.15.4",
@@ -324,6 +314,13 @@ checksum = "96b0db21af676c1ce64250b5f40f3ce2cf27e4e47cb91ed91eb6fe9350b430c1"
 dependencies = [
  "pest",
  "pest_derive",
+ "serde",
+]
+
+[[package]]
+name = "key"
+version = "0.1.0"
+dependencies = [
  "serde",
 ]
 
@@ -535,6 +532,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "40734c41988f7306bb04f0ecf60ec0f3f1caa34290e4e8ea471dcd3346483b83"
 dependencies = [
  "serde",
+]
+
+[[package]]
+name = "settings"
+version = "0.1.0"
+dependencies = [
+ "config",
+ "directories",
+ "serde",
+ "toml",
 ]
 
 [[package]]
