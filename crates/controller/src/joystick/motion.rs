@@ -14,6 +14,18 @@ impl Default for Motion {
   }
 }
 
+impl From<f64> for Motion {
+  fn from(avg_speed: f64) -> Self {
+    if avg_speed >= SETTINGS.motion_threshold_macro_flick() {
+      Motion::Flick
+    } else if avg_speed >= SETTINGS.motion_threshold_micro_macro() {
+      Motion::Macro
+    } else {
+      Motion::Micro
+    }
+  }
+}
+
 impl From<Motion> for std::time::Duration {
   fn from(value: Motion) -> Self {
     match value {
