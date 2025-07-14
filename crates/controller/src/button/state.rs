@@ -1,3 +1,5 @@
+use crate::ButtonError;
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum State {
   Pressed,
@@ -35,7 +37,7 @@ impl TryFrom<i32> for State {
   }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum StateError {
   InvalidState(i32),
 }

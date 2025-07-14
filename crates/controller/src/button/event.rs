@@ -7,6 +7,13 @@ pub struct ButtonEvent {
 }
 
 impl ButtonEvent {
+  pub fn new(button: ControllerButton, state: State) -> Self {
+    Self {
+      button,
+      state,
+    }
+  }
+
   pub fn button(&self) -> ControllerButton {
     self.button
   }

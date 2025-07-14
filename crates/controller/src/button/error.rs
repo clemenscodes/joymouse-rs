@@ -1,10 +1,19 @@
-use crate::ControllerButton;
+use crate::{ControllerButton, StateError};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ButtonError {
   UnsupportedKeyCode(u16),
   InvalidButton(ControllerButton),
+  InvalidState(i32),
   InvalidKey(String),
+}
+
+impl From<StateError> for ButtonError {
+  fn from(value: StateError) -> Self {
+    match value {
+      StateError::InvalidState(state) => Self::InvalidState(state),
+    }
+  }
 }
 
 impl From<u16> for ButtonError {
@@ -30,6 +39,9 @@ impl std::fmt::Display for ButtonError {
       }
       ButtonError::InvalidKey(key) => {
         writeln!(f, "Invalid key: {:#?}", key)
+      }
+      ButtonError::InvalidState(state) => {
+        writeln!(f, "Invalid state: {:#?}", state)
       }
     }
   }
