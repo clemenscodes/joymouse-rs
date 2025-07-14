@@ -1,9 +1,7 @@
+use controller::ControllerButton;
 use evdev::KeyCode;
 
-use crate::{
-  button::ControllerButton,
-  joystick::{axis::JoyStickAxis, JoyStickError},
-};
+use crate::joystick::{axis::JoyStickAxis, JoyStickError};
 
 #[derive(Debug, Copy, Clone)]
 pub enum Polarity {

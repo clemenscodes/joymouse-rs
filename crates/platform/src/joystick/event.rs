@@ -2,7 +2,7 @@ use controller::State;
 use evdev::{AbsoluteAxisCode, KeyEvent, RelativeAxisEvent};
 
 use crate::{
-  button::ControllerButton,
+  button::try_controller_button_from_keycode,
   joystick::{axis::JoyStickAxis, polarity::Polarity, JoyStick, JoyStickError, JOYSTICK_KEYS},
 };
 
@@ -48,7 +48,7 @@ impl TryFrom<KeyEvent> for ControllerJoyStickEvent {
     let code = value.code();
     let joystick = JoyStick::Left;
     let axis = JoyStickAxis::try_from((&*JOYSTICK_KEYS, code))?;
-    let button = ControllerButton::try_from(code)?;
+    let button = try_controller_button_from_keycode(code)?;
     let state = State::try_from(value.value())?;
     let polarity = Polarity::try_from((&axis, &button, code))?;
     Ok(Self::new(joystick, axis, polarity, state))

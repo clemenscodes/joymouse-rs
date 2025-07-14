@@ -1,10 +1,11 @@
 mod error;
 
 use crate::{
-  button::ControllerButton,
+  button::try_controller_button_from_keycode,
   joystick::{keys::JoyStickKeys, JOYSTICK_KEYS},
 };
 
+use controller::ControllerButton;
 use evdev::{KeyCode, KeyEvent, RelativeAxisCode, RelativeAxisEvent};
 
 #[derive(Debug)]
@@ -60,7 +61,7 @@ impl TryFrom<KeyCode> for JoyStickAxis {
       return Err(AxisError::Unknown);
     }
 
-    let button = ControllerButton::try_from(value)?;
+    let button = try_controller_button_from_keycode(value)?;
 
     let axis = match button {
       ControllerButton::Forward => JoyStickAxis::Y,
