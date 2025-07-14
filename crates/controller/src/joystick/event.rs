@@ -1,14 +1,16 @@
-use crate::{JoyStick, JoyStickAxis, Polarity};
+use io::{Axis, Polarity};
+
+use crate::JoyStick;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct JoyStickEvent {
   joystick: JoyStick,
-  axis: JoyStickAxis,
+  axis: Axis,
   polarity: Polarity,
 }
 
 impl JoyStickEvent {
-  pub fn new(joystick: JoyStick, axis: JoyStickAxis, polarity: Polarity) -> Self {
+  pub fn new(joystick: JoyStick, axis: Axis, polarity: Polarity) -> Self {
     Self {
       joystick,
       axis,
@@ -20,7 +22,7 @@ impl JoyStickEvent {
     &self.joystick
   }
 
-  pub fn axis(&self) -> &JoyStickAxis {
+  pub fn axis(&self) -> &Axis {
     &self.axis
   }
 

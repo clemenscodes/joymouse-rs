@@ -1,9 +1,7 @@
 use evdev::EventSummary;
+use io::AxisError;
 
-use crate::{
-  button::ButtonError,
-  joystick::{AxisError, JoyStickError},
-};
+use crate::{button::ButtonError, joystick::JoyStickError};
 
 #[derive(Debug)]
 pub enum ControllerError {

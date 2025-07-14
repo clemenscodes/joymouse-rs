@@ -40,3 +40,5 @@ impl std::fmt::Display for ButtonError {
     }
   }
 }
+
+impl std::error::Error for ButtonError {}

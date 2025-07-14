@@ -1,6 +1,6 @@
 use crate::ButtonError;
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum AxisError {
   Button(ButtonError),
   Unknown,
@@ -24,3 +24,5 @@ impl std::fmt::Display for AxisError {
     }
   }
 }
+
+impl std::error::Error for AxisError {}

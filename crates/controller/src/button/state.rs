@@ -49,3 +49,5 @@ impl std::fmt::Display for StateError {
     }
   }
 }
+
+impl std::error::Error for StateError {}

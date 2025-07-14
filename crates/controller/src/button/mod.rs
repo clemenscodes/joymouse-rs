@@ -1,8 +1,6 @@
-mod error;
 mod event;
 mod state;
 
-pub use error::*;
 pub use event::*;
 pub use state::*;
 
