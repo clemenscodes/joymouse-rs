@@ -1,4 +1,4 @@
-use crate::button::ControllerButton;
+use controller::ControllerButton;
 use evdev::KeyCode;
 use std::{collections::HashMap, sync::LazyLock};
 

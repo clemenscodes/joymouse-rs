@@ -1,7 +1,8 @@
 use std::sync::LazyLock;
 
-use crate::{button::ControllerButton, keys::CONTROLLER_KEY_MAP};
+use crate::keys::CONTROLLER_KEY_MAP;
 
+use controller::ControllerButton;
 use evdev::KeyCode;
 
 pub static JOYSTICK_KEYS: LazyLock<JoyStickKeys> = LazyLock::new(JoyStickKeys::default);
