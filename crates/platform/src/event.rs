@@ -1,64 +1,48 @@
-use controller::{ButtonEvent, ControllerError};
+use controller::{ControllerError, ControllerEvent};
 use evdev::{EventSummary, KeyEvent, RelativeAxisEvent};
 
 use crate::{
   button::try_from_key_event_for_button_event,
-  joystick::{ControllerJoyStickEvent, JOYSTICK_KEYS},
+  joystick::{
+    try_from_key_event_for_joystick_event, try_from_relative_axis_event_for_joystick_event,
+    JOYSTICK_KEYS,
+  },
 };
 
-#[derive(Debug)]
-pub enum ControllerEvent {
-  Button(ButtonEvent),
-  JoyStick(ControllerJoyStickEvent),
-}
+pub fn try_from_key_event_for_controller_event(
+  event: KeyEvent,
+) -> Result<ControllerEvent, ControllerError> {
+  let code = event.code();
 
-impl From<ButtonEvent> for ControllerEvent {
-  fn from(event: ButtonEvent) -> Self {
-    Self::Button(event)
+  if JOYSTICK_KEYS.code_is_joystick_key(code) {
+    let joystick_event = try_from_key_event_for_joystick_event(event)?;
+    let event = ControllerEvent::from(joystick_event);
+    return Ok(event);
   }
+
+  let button_event = try_from_key_event_for_button_event(event)?;
+  let event = ControllerEvent::from(button_event);
+  Ok(event)
 }
 
-impl From<ControllerJoyStickEvent> for ControllerEvent {
-  fn from(event: ControllerJoyStickEvent) -> Self {
-    Self::JoyStick(event)
-  }
+pub fn try_from_relative_axis_event_for_controller_event(
+  event: RelativeAxisEvent,
+) -> Result<ControllerEvent, ControllerError> {
+  let joystick_event = try_from_relative_axis_event_for_joystick_event(event)?;
+  let event = ControllerEvent::from(joystick_event);
+  Ok(event)
 }
 
-impl TryFrom<KeyEvent> for ControllerEvent {
-  type Error = ControllerError;
-
-  fn try_from(value: KeyEvent) -> Result<Self, Self::Error> {
-    let code = value.code();
-
-    if JOYSTICK_KEYS.code_is_joystick_key(code) {
-      let event = Self::from(ControllerJoyStickEvent::try_from(value)?);
-      return Ok(event);
+pub fn try_from_event_summary_for_controller_event(
+  event: EventSummary,
+) -> Result<ControllerEvent, ControllerError> {
+  let event = match event {
+    EventSummary::Key(event, _, _) => try_from_key_event_for_controller_event(event)?,
+    EventSummary::RelativeAxis(event, _, _) => {
+      try_from_relative_axis_event_for_controller_event(event)?
     }
+    _ => return Err(ControllerError::UnsupportedEvent),
+  };
 
-    let event = Self::from(try_from_key_event_for_button_event(value)?);
-    Ok(event)
-  }
-}
-
-impl TryFrom<RelativeAxisEvent> for ControllerEvent {
-  type Error = ControllerError;
-
-  fn try_from(value: RelativeAxisEvent) -> Result<Self, Self::Error> {
-    let event = Self::from(ControllerJoyStickEvent::try_from(value)?);
-    Ok(event)
-  }
-}
-
-impl TryFrom<EventSummary> for ControllerEvent {
-  type Error = ControllerError;
-
-  fn try_from(value: EventSummary) -> Result<Self, Self::Error> {
-    let event = match value {
-      EventSummary::Key(event, _, _) => Self::try_from(event)?,
-      EventSummary::RelativeAxis(event, _, _) => Self::try_from(event)?,
-      _ => return Err(ControllerError::UnsupportedEvent),
-    };
-
-    Ok(event)
-  }
+  Ok(event)
 }

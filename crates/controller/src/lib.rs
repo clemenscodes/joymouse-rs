@@ -70,10 +70,10 @@ impl VirtualController {
     let joystick = event.joystick();
     let axis = event.axis();
     let polarity = event.polarity();
-    // let state = event.state();
+    let state = event.state();
 
     if *joystick == JoyStick::Left {
-      // self.update_left_stick_direction(axis, polarity, state);
+      self.update_left_stick_direction(axis, polarity, &state);
     }
 
     let direction = self.left_stick.lock().unwrap().direction();
@@ -138,7 +138,8 @@ impl VirtualController {
 
   fn get_stick_event(stick: JoyStick, axis: Axis, value: f64) -> ControllerEvent {
     let polarity = Polarity::try_from(value).unwrap();
-    let joystick_event = JoyStickEvent::new(stick, axis, polarity);
+    let state = State::Pressed;
+    let joystick_event = JoyStickEvent::new(stick, axis, polarity, state);
     ControllerEvent::from(joystick_event)
   }
 

@@ -3,9 +3,14 @@ mod event;
 mod joystick;
 mod keys;
 
-use crate::event::ControllerEvent;
+use crate::{
+  button::from_button_event_for_input_event, event::try_from_event_summary_for_controller_event,
+};
 
-use controller::{Axis, Direction, JoyStick, JoyStickState, Vector};
+use controller::{
+  Axis, ButtonEvent, ControllerEvent, Direction, JoyStick, JoyStickEvent, JoyStickState, Polarity,
+  State, Vector,
+};
 use settings::{MAX_STICK_TILT, MIN_STICK_TILT, SETTINGS};
 
 use std::{
@@ -147,7 +152,7 @@ impl Controller {
         if let Some(device) = fd_map.get(&fd) {
           let mut device = device.lock().unwrap();
           for event in device.fetch_events().unwrap() {
-            if let Ok(event) = ControllerEvent::try_from(event.destructure()) {
+            if let Ok(event) = try_from_event_summary_for_controller_event(event.destructure()) {
               controller.lock().unwrap().handle_event(event);
             }
           }
@@ -161,6 +166,63 @@ impl Controller {
       ControllerEvent::Button(event) => self.handle_button_event(event),
       ControllerEvent::JoyStick(event) => self.handle_joystick_event(event),
     }
+  }
+
+  pub fn handle_button_event(&mut self, event: ButtonEvent) {
+    let button_event = from_button_event_for_input_event(event);
+    self.emit_button_events(&[button_event]);
+  }
+
+  pub fn handle_joystick_event(&mut self, event: JoyStickEvent) {
+    let joystick = event.joystick();
+    let axis = event.axis();
+    let polarity = event.polarity();
+    let state = event.state();
+
+    if *joystick == JoyStick::Left {
+      self.update_left_stick_direction(axis, polarity, &state);
+    }
+
+    let direction = self.left_stick.lock().unwrap().direction();
+
+    let vector = match joystick {
+      JoyStick::Left => direction.map(Vector::from).unwrap_or_default().flipped_y(),
+      JoyStick::Right => {
+        let delta = f64::from(polarity);
+        match axis {
+          Axis::X => Vector::new(delta, 0.0),
+          Axis::Y => Vector::new(0.0, delta),
+        }
+      }
+    };
+
+    if *joystick == JoyStick::Right {
+      let vector = self.right_stick.lock().unwrap().micro(vector);
+      self.move_right_stick(vector);
+    } else {
+      let vector = {
+        let mut stick = self.left_stick.lock().unwrap();
+        stick.tilt(vector)
+      };
+      self.move_left_stick(vector, None);
+    }
+  }
+
+  fn update_left_stick_direction(&self, axis: &Axis, polarity: Polarity, state: &State) {
+    let mut stick = self.left_stick.lock().unwrap();
+
+    match axis {
+      Axis::X => match polarity {
+        Polarity::Negative(_) => stick.set_left(*state),
+        Polarity::Positive(_) => stick.set_right(*state),
+      },
+      Axis::Y => match polarity {
+        Polarity::Negative(_) => stick.set_down(*state),
+        Polarity::Positive(_) => stick.set_up(*state),
+      },
+    }
+
+    stick.update_direction();
   }
 
   fn virtual_device_mut(&mut self) -> &mut VirtualDevice {

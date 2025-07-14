@@ -1,4 +1,3 @@
-mod control;
 mod event;
 
 pub use event::*;
