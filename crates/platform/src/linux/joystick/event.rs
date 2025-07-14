@@ -29,7 +29,7 @@ pub fn try_from_relative_axis_event_for_joystick_event(
   let (code, value) = event.destructure();
   let joystick = try_from_relative_axis_code_for_joystick(code)?;
   let axis = try_from_relative_axis_code_for_axis(code)?;
-  let polarity = Polarity::try_from(value as f64)?;
+  let polarity = Polarity::from(value);
   let state = State::Pressed;
   Ok(JoyStickEvent::new(joystick, axis, polarity, state))
 }

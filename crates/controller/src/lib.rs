@@ -18,12 +18,15 @@ pub trait ControllerEventEmitter: Send + Sync {
 
 pub trait VirtualController: ControllerEventEmitter {
   fn left_stick(&self) -> &Mutex<JoyStickState>;
+
   fn right_stick(&self) -> &Mutex<JoyStickState>;
 
   fn left_stick_mut(&mut self) -> &mut Arc<Mutex<JoyStickState>>;
+
   fn right_stick_mut(&mut self) -> &mut Arc<Mutex<JoyStickState>>;
 
   fn handle_event(&mut self, event: ControllerEvent) -> Result<(), ControllerError> {
+    println!("handling controller event: {:#?}", event);
     match event {
       ControllerEvent::Button(e) => self.handle_button_event(e),
       ControllerEvent::JoyStick(e) => self.handle_joystick_event(e),
@@ -66,10 +69,12 @@ pub trait VirtualController: ControllerEventEmitter {
       Axis::X => match polarity {
         Polarity::Negative(_) => stick.set_left(*state),
         Polarity::Positive(_) => stick.set_right(*state),
+        Polarity::Neutral => {}
       },
       Axis::Y => match polarity {
         Polarity::Negative(_) => stick.set_down(*state),
         Polarity::Positive(_) => stick.set_up(*state),
+        Polarity::Neutral => {}
       },
     }
 
@@ -162,7 +167,7 @@ pub trait VirtualController: ControllerEventEmitter {
   }
 
   fn get_stick_event(stick: JoyStick, axis: Axis, value: f64) -> ControllerEvent {
-    let polarity = Polarity::try_from(value).unwrap();
+    let polarity = Polarity::from(value);
     let state = State::Pressed;
     let joystick_event = JoyStickEvent::new(stick, axis, polarity, state);
     ControllerEvent::from(joystick_event)
