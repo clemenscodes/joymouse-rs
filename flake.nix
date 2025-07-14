@@ -116,7 +116,7 @@
         system,
         ...
       }: let
-        apps = {inherit joymouse-glibc joymouse-musl-static;};
+        apps = {inherit joymouse-glibc joymouse-musl-static joymouse-win;};
       in {
         formatter = pkgs.alejandra;
 

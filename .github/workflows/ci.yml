@@ -12,7 +12,7 @@ concurrency:
 
 env:
   NIX_CACHE: clemenscodes
-  NIX_DEV_PROFILE: w3mem
+  NIX_DEV_PROFILE: joymouse
 
 jobs:
   tests:
