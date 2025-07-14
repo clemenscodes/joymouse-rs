@@ -5,10 +5,10 @@ mod keys;
 
 use crate::{
   event::ControllerEvent,
-  joystick::{JoyStick, JoyStickAxis, JoyStickState},
+  joystick::{JoyStick, JoyStickState},
 };
 
-use controller::{Direction, Vector};
+use controller::{Axis, Direction, Vector};
 use settings::{MAX_STICK_TILT, MIN_STICK_TILT, SETTINGS};
 
 use std::{
@@ -228,15 +228,15 @@ impl Controller {
     };
 
     self.emit_button_events(&[
-      Self::get_stick_event(JoyStick::Left, JoyStickAxis::X, x),
-      Self::get_stick_event(JoyStick::Left, JoyStickAxis::Y, y),
+      Self::get_stick_event(JoyStick::Left, Axis::X, x),
+      Self::get_stick_event(JoyStick::Left, Axis::Y, y),
     ]);
   }
 
   fn move_right_stick(&mut self, vector: Vector) {
     self.emit_joystick_events(&[
-      Self::get_stick_event(JoyStick::Right, JoyStickAxis::X, vector.dx()),
-      Self::get_stick_event(JoyStick::Right, JoyStickAxis::Y, vector.dy()),
+      Self::get_stick_event(JoyStick::Right, Axis::X, vector.dx()),
+      Self::get_stick_event(JoyStick::Right, Axis::Y, vector.dy()),
     ]);
   }
 
@@ -264,12 +264,12 @@ impl Controller {
     }
   }
 
-  fn get_stick_event(stick: JoyStick, axis: JoyStickAxis, value: f64) -> InputEvent {
+  fn get_stick_event(stick: JoyStick, axis: Axis, value: f64) -> InputEvent {
     let code = match (stick, axis) {
-      (JoyStick::Left, JoyStickAxis::X) => AbsoluteAxisCode::ABS_X,
-      (JoyStick::Left, JoyStickAxis::Y) => AbsoluteAxisCode::ABS_Y,
-      (JoyStick::Right, JoyStickAxis::X) => AbsoluteAxisCode::ABS_RX,
-      (JoyStick::Right, JoyStickAxis::Y) => AbsoluteAxisCode::ABS_RY,
+      (JoyStick::Left, Axis::X) => AbsoluteAxisCode::ABS_X,
+      (JoyStick::Left, Axis::Y) => AbsoluteAxisCode::ABS_Y,
+      (JoyStick::Right, Axis::X) => AbsoluteAxisCode::ABS_RX,
+      (JoyStick::Right, Axis::Y) => AbsoluteAxisCode::ABS_RY,
     };
 
     InputEvent::new(EventType::ABSOLUTE.0, code.0, value as i32)

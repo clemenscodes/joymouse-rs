@@ -1,7 +1,7 @@
-use controller::{Polarity, State, Vector};
+use controller::{Axis, Polarity, State, Vector};
 
 use crate::{
-  joystick::{axis::JoyStickAxis, ControllerJoyStickEvent, JoyStick},
+  joystick::{ControllerJoyStickEvent, JoyStick},
   Controller,
 };
 
@@ -23,8 +23,8 @@ impl Controller {
       JoyStick::Right => {
         let delta = f64::from(polarity);
         match axis {
-          JoyStickAxis::X => Vector::new(delta, 0.0),
-          JoyStickAxis::Y => Vector::new(0.0, delta),
+          Axis::X => Vector::new(delta, 0.0),
+          Axis::Y => Vector::new(0.0, delta),
         }
       }
     };
@@ -41,15 +41,15 @@ impl Controller {
     }
   }
 
-  fn update_left_stick_direction(&self, axis: &JoyStickAxis, polarity: Polarity, state: &State) {
+  fn update_left_stick_direction(&self, axis: &Axis, polarity: Polarity, state: &State) {
     let mut stick = self.left_stick.lock().unwrap();
 
     match axis {
-      JoyStickAxis::X => match polarity {
+      Axis::X => match polarity {
         Polarity::Negative(_) => stick.set_left(*state),
         Polarity::Positive(_) => stick.set_right(*state),
       },
-      JoyStickAxis::Y => match polarity {
+      Axis::Y => match polarity {
         Polarity::Negative(_) => stick.set_down(*state),
         Polarity::Positive(_) => stick.set_up(*state),
       },
