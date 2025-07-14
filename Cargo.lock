@@ -451,6 +451,7 @@ dependencies = [
 name = "platform"
 version = "0.1.0"
 dependencies = [
+ "bindings",
  "controller",
  "epoll",
  "evdev",

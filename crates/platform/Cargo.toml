@@ -6,9 +6,10 @@ license.workspace = true
 authors.workspace = true
 
 [dependencies]
-settings = { path = "../settings" }
-io = { path = "../io" }
+bindings = { path = "../bindings" }
 controller = { path = "../controller" }
+io = { path = "../io" }
+settings = { path = "../settings" }
 
 [target.'cfg(not(windows))'.dependencies]
 epoll = "4.3.3"
