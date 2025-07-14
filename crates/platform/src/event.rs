@@ -1,19 +1,19 @@
-use controller::ControllerError;
+use controller::{ButtonEvent, ControllerError};
 use evdev::{EventSummary, KeyEvent, RelativeAxisEvent};
 
 use crate::{
-  button::ControllerButtonEvent,
+  button::try_from_key_event_for_button_event,
   joystick::{ControllerJoyStickEvent, JOYSTICK_KEYS},
 };
 
 #[derive(Debug)]
 pub enum ControllerEvent {
-  Button(ControllerButtonEvent),
+  Button(ButtonEvent),
   JoyStick(ControllerJoyStickEvent),
 }
 
-impl From<ControllerButtonEvent> for ControllerEvent {
-  fn from(event: ControllerButtonEvent) -> Self {
+impl From<ButtonEvent> for ControllerEvent {
+  fn from(event: ButtonEvent) -> Self {
     Self::Button(event)
   }
 }
@@ -35,7 +35,7 @@ impl TryFrom<KeyEvent> for ControllerEvent {
       return Ok(event);
     }
 
-    let event = Self::from(ControllerButtonEvent::try_from(value)?);
+    let event = Self::from(try_from_key_event_for_button_event(value)?);
     Ok(event)
   }
 }
