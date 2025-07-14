@@ -1,5 +1,4 @@
 mod control;
-mod error;
 mod event;
 
 pub use event::*;
