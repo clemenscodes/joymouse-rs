@@ -1,8 +1,9 @@
 mod axis;
-mod control;
 mod event;
 mod keys;
 mod polarity;
+
+pub use event::*;
 
 use controller::{JoyStick, JoyStickError};
 
@@ -19,5 +20,4 @@ pub fn try_from_relative_axis_code_for_joystick(
   Ok(joystick)
 }
 
-pub use event::ControllerJoyStickEvent;
 pub use keys::JOYSTICK_KEYS;
