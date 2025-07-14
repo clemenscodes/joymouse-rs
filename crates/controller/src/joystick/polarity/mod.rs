@@ -6,12 +6,14 @@ pub use error::PolarityError;
 pub enum Polarity {
   Positive(i32),
   Negative(i32),
+  Neutral,
 }
 
 impl Polarity {
   pub fn magnitude(&self) -> i32 {
     match self {
       Polarity::Positive(val) | Polarity::Negative(val) => val.abs(),
+      Polarity::Neutral => 0,
     }
   }
 
@@ -19,6 +21,7 @@ impl Polarity {
     match self {
       Polarity::Positive(_) => 1,
       Polarity::Negative(_) => -1,
+      Polarity::Neutral => 0,
     }
   }
 }
@@ -28,6 +31,7 @@ impl From<Polarity> for i32 {
     match value {
       Polarity::Positive(strength) => strength,
       Polarity::Negative(strength) => strength,
+      Polarity::Neutral => 0,
     }
   }
 }
@@ -37,34 +41,31 @@ impl From<Polarity> for f64 {
     match value {
       Polarity::Positive(strength) => strength as f64,
       Polarity::Negative(strength) => strength as f64,
+      Polarity::Neutral => 0.0,
     }
   }
 }
 
-impl TryFrom<i32> for Polarity {
-  type Error = PolarityError;
-
-  fn try_from(value: i32) -> Result<Self, Self::Error> {
+impl From<i32> for Polarity {
+  fn from(value: i32) -> Self {
     if value > 0 {
-      Ok(Self::Positive(value))
+      Self::Positive(value)
     } else if value < 0 {
-      Ok(Self::Negative(value))
+      Self::Negative(value)
     } else {
-      Err(PolarityError::InvalidPolarity(value))
+      Self::Neutral
     }
   }
 }
 
-impl TryFrom<f64> for Polarity {
-  type Error = PolarityError;
-
-  fn try_from(value: f64) -> Result<Self, Self::Error> {
+impl From<f64> for Polarity {
+  fn from(value: f64) -> Self {
     if value > 0.0 {
-      Ok(Self::Positive(value as i32))
+      Self::Positive(value as i32)
     } else if value < 0.0 {
-      Ok(Self::Negative(value as i32))
+      Self::Negative(value as i32)
     } else {
-      Err(PolarityError::InvalidPolarity(value as i32))
+      Self::Neutral
     }
   }
 }

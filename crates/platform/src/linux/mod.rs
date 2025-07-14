@@ -2,15 +2,13 @@ mod button;
 mod event;
 mod joystick;
 
-use crate::linux::{
-  button::from_button_event_for_input_event, event::try_from_event_summary_for_controller_event,
-};
+use crate::linux::event::try_from_event_summary_for_controller_event;
 
 use controller::{
-  Axis, ButtonEvent, ControllerEvent, Direction, JoyStick, JoyStickEvent, JoyStickState, Polarity,
-  State, Vector,
+  ButtonEvent, ControllerError, ControllerEvent, ControllerEventEmitter, JoyStickEvent,
+  JoyStickState, VirtualController,
 };
-use settings::{MAX_STICK_TILT, MIN_STICK_TILT, SETTINGS};
+use settings::{MAX_STICK_TILT, MIN_STICK_TILT};
 
 use std::{
   collections::HashMap,
@@ -29,6 +27,56 @@ pub struct Controller {
   virtual_device: VirtualDevice,
   left_stick: Arc<Mutex<JoyStickState>>,
   right_stick: Arc<Mutex<JoyStickState>>,
+}
+
+pub fn from_controller_event_for_input_event(event: ControllerEvent) -> InputEvent {
+  match event {
+    ControllerEvent::Button(button_event) => from_button_event_for_input_event(button_event),
+    ControllerEvent::JoyStick(joystick_event) => {
+      from_joystick_event_for_input_event(joystick_event)
+    }
+  }
+}
+
+pub fn from_button_event_for_input_event(event: ButtonEvent) -> InputEvent {
+  todo!()
+  // let value: i32 = event.state().into();
+  // InputEvent::new(EventType::KEY.0, code, value)
+}
+
+pub fn from_joystick_event_for_input_event(event: JoyStickEvent) -> InputEvent {
+  todo!()
+  // InputEvent::new(EventType::ABSOLUTE.0, code, value)
+}
+
+#[rustfmt::skip]
+impl ControllerEventEmitter for Controller {
+  fn emit(&mut self, events: &[ControllerEvent]) -> Result<(), ControllerError> {
+    let input_events: Vec<InputEvent> = events
+      .iter()
+      .map(|e| from_controller_event_for_input_event(*e))
+      .collect();
+    self.virtual_device.emit(&input_events).unwrap();
+    Ok(())
+  }
+}
+
+impl VirtualController for Controller {
+  fn left_stick(&self) -> &Mutex<JoyStickState> {
+    &self.left_stick
+  }
+
+  fn right_stick(&self) -> &Mutex<JoyStickState> {
+    &self.right_stick
+  }
+
+  fn left_stick_mut(&mut self) -> &mut Arc<Mutex<JoyStickState>> {
+    &mut self.left_stick
+  }
+
+  fn right_stick_mut(&mut self) -> &mut Arc<Mutex<JoyStickState>> {
+    &mut self.right_stick
+  }
 }
 
 impl Controller {
@@ -152,185 +200,12 @@ impl Controller {
           let mut device = device.lock().unwrap();
           for event in device.fetch_events().unwrap() {
             if let Ok(event) = try_from_event_summary_for_controller_event(event.destructure()) {
-              controller.lock().unwrap().handle_event(event);
+              controller.lock().unwrap().handle_event(event).unwrap();
             }
           }
         }
       }
     }
-  }
-
-  fn handle_event(&mut self, event: ControllerEvent) {
-    match event {
-      ControllerEvent::Button(event) => self.handle_button_event(event),
-      ControllerEvent::JoyStick(event) => self.handle_joystick_event(event),
-    }
-  }
-
-  pub fn handle_button_event(&mut self, event: ButtonEvent) {
-    let button_event = from_button_event_for_input_event(event);
-    self.emit_button_events(&[button_event]);
-  }
-
-  pub fn handle_joystick_event(&mut self, event: JoyStickEvent) {
-    let joystick = event.joystick();
-    let axis = event.axis();
-    let polarity = event.polarity();
-    let state = event.state();
-
-    if *joystick == JoyStick::Left {
-      self.update_left_stick_direction(axis, polarity, &state);
-    }
-
-    let direction = self.left_stick.lock().unwrap().direction();
-
-    let vector = match joystick {
-      JoyStick::Left => direction.map(Vector::from).unwrap_or_default().flipped_y(),
-      JoyStick::Right => {
-        let delta = f64::from(polarity);
-        match axis {
-          Axis::X => Vector::new(delta, 0.0),
-          Axis::Y => Vector::new(0.0, delta),
-        }
-      }
-    };
-
-    if *joystick == JoyStick::Right {
-      let vector = self.right_stick.lock().unwrap().micro(vector);
-      self.move_right_stick(vector);
-    } else {
-      let vector = {
-        let mut stick = self.left_stick.lock().unwrap();
-        stick.tilt(vector)
-      };
-      self.move_left_stick(vector, None);
-    }
-  }
-
-  fn update_left_stick_direction(&self, axis: &Axis, polarity: Polarity, state: &State) {
-    let mut stick = self.left_stick.lock().unwrap();
-
-    match axis {
-      Axis::X => match polarity {
-        Polarity::Negative(_) => stick.set_left(*state),
-        Polarity::Positive(_) => stick.set_right(*state),
-      },
-      Axis::Y => match polarity {
-        Polarity::Negative(_) => stick.set_down(*state),
-        Polarity::Positive(_) => stick.set_up(*state),
-      },
-    }
-
-    stick.update_direction();
-  }
-
-  fn virtual_device_mut(&mut self) -> &mut VirtualDevice {
-    &mut self.virtual_device
-  }
-
-  fn emit_button_events(&mut self, events: &[InputEvent]) {
-    self.virtual_device_mut().emit(events).unwrap()
-  }
-
-  fn emit_joystick_events(&mut self, events: &[InputEvent]) {
-    self.virtual_device_mut().emit(events).unwrap()
-  }
-
-  fn left_stick_mut(&mut self) -> &mut Arc<Mutex<JoyStickState>> {
-    &mut self.left_stick
-  }
-
-  fn right_stick_mut(&mut self) -> &mut Arc<Mutex<JoyStickState>> {
-    &mut self.right_stick
-  }
-
-  fn monitor_left_stick(controller: Arc<Mutex<Self>>) {
-    loop {
-      {
-        controller.lock().unwrap().handle_left_stick();
-      }
-      std::thread::sleep(std::time::Duration::from_millis(1));
-    }
-  }
-
-  fn handle_left_stick(&mut self) {
-    let maybe_direction = {
-      let stick_lock = self.left_stick_mut();
-      let stick = stick_lock.lock().unwrap();
-      stick.direction()
-    };
-
-    if let Some(direction) = maybe_direction {
-      let vector = Vector::from(direction) * settings::LEFT_STICK_SENSITIVITY;
-
-      let vector = {
-        let mut stick = self.left_stick_mut().lock().unwrap();
-        stick.tilt(vector)
-      };
-
-      self.move_left_stick(vector, Some(direction));
-    } else {
-      self.center_left_stick();
-    }
-  }
-
-  fn move_left_stick(&mut self, vector: Vector, direction: Option<Direction>) {
-    let (x, y) = if let Some(direction) = direction {
-      if direction == Direction::North {
-        (0.0, -vector.dy() * 2.0)
-      } else {
-        (vector.dx(), -vector.dy())
-      }
-    } else {
-      (vector.dx(), -vector.dy())
-    };
-
-    self.emit_button_events(&[
-      Self::get_stick_event(JoyStick::Left, Axis::X, x),
-      Self::get_stick_event(JoyStick::Left, Axis::Y, y),
-    ]);
-  }
-
-  fn move_right_stick(&mut self, vector: Vector) {
-    self.emit_joystick_events(&[
-      Self::get_stick_event(JoyStick::Right, Axis::X, vector.dx()),
-      Self::get_stick_event(JoyStick::Right, Axis::Y, vector.dy()),
-    ]);
-  }
-
-  fn center_left_stick(&mut self) {
-    self.move_left_stick(Vector::default(), None);
-  }
-
-  fn center_right_stick(&mut self) {
-    self.move_right_stick(Vector::default());
-  }
-
-  fn monitor_right_stick(controller: Arc<Mutex<Self>>) {
-    loop {
-      {
-        controller.lock().unwrap().handle_right_stick();
-      }
-      std::thread::sleep(SETTINGS.tickrate());
-    }
-  }
-
-  fn handle_right_stick(&mut self) {
-    let left_stick_direction = { self.left_stick.lock().unwrap().direction() };
-    if self.right_stick_mut().lock().unwrap().handle_idle(left_stick_direction) {
-      self.center_right_stick();
-    }
-  }
-
-  fn get_stick_event(stick: JoyStick, axis: Axis, value: f64) -> InputEvent {
-    let code = match (stick, axis) {
-      (JoyStick::Left, Axis::X) => AbsoluteAxisCode::ABS_X,
-      (JoyStick::Left, Axis::Y) => AbsoluteAxisCode::ABS_Y,
-      (JoyStick::Right, Axis::X) => AbsoluteAxisCode::ABS_RX,
-      (JoyStick::Right, Axis::Y) => AbsoluteAxisCode::ABS_RY,
-    };
-
-    InputEvent::new(EventType::ABSOLUTE.0, code.0, value as i32)
   }
 
   fn extract_input_number(phys: Option<&str>) -> Option<u32> {
