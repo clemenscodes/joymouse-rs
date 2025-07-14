@@ -29,9 +29,13 @@ checksum = "9d297deb1925b89f2ccc13d7635fa0714f12c87adce1c75356b39ca9b7178567"
 name = "bindings"
 version = "0.1.0"
 dependencies = [
+ "config",
  "controller",
+ "directories",
  "io",
+ "serde",
  "settings",
+ "toml",
 ]
 
 [[package]]
@@ -77,10 +81,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "613afe47fcd5fac7ccf1db93babcb082c5994d996f20b8b159f2ad1658eb5724"
 
 [[package]]
-name = "cli"
-version = "0.1.0"
-
-[[package]]
 name = "config"
 version = "0.15.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -123,6 +123,7 @@ dependencies = [
 name = "controller"
 version = "0.1.0"
 dependencies = [
+ "serde",
  "settings",
 ]
 
@@ -269,10 +270,6 @@ dependencies = [
  "libc",
  "wasi",
 ]
-
-[[package]]
-name = "gui"
-version = "0.1.0"
 
 [[package]]
 name = "hashbrown"
@@ -668,10 +665,6 @@ name = "toml_writer"
 version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fcc842091f2def52017664b53082ecbbeb5c7731092bad69d2c63050401dfd64"
-
-[[package]]
-name = "tui"
-version = "0.1.0"
 
 [[package]]
 name = "typenum"
