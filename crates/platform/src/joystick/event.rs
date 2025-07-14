@@ -1,3 +1,4 @@
+use bindings::JOYSTICK_KEYS;
 use controller::{JoyStick, JoyStickError, JoyStickEvent, Polarity, State};
 use evdev::{KeyEvent, RelativeAxisEvent};
 
@@ -6,7 +7,7 @@ use crate::{
   joystick::{
     axis::{try_from_jk_kc_for_axis, try_from_relative_axis_code_for_axis},
     polarity::try_from_event_tuple_for_polarity,
-    try_from_relative_axis_code_for_joystick, JOYSTICK_KEYS,
+    try_from_relative_axis_code_for_joystick,
   },
 };
 
