@@ -5,6 +5,6 @@ fn main() {
   }
   #[cfg(windows)]
   {
-    println!("Windows is not supported yet. Stay tuned :)");
+    platform::windows::Controller::run()
   }
 }
