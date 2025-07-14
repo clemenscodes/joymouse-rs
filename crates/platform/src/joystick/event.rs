@@ -1,9 +1,9 @@
+use controller::State;
 use evdev::{AbsoluteAxisCode, KeyEvent, RelativeAxisEvent};
 
 use crate::{
   button::ControllerButton,
   joystick::{axis::JoyStickAxis, polarity::Polarity, JoyStick, JoyStickError, JOYSTICK_KEYS},
-  state::State,
 };
 
 #[derive(Debug)]

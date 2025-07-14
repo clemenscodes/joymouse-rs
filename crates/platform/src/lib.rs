@@ -3,13 +3,13 @@ mod error;
 mod event;
 mod joystick;
 mod keys;
-mod state;
 
 use crate::{
   event::ControllerEvent,
-  joystick::{Direction, JoyStick, JoyStickAxis, JoyStickState, Vector},
+  joystick::{JoyStick, JoyStickAxis, JoyStickState},
 };
 
+use controller::{Direction, Vector};
 use settings::{MAX_STICK_TILT, MIN_STICK_TILT, SETTINGS};
 
 use std::{

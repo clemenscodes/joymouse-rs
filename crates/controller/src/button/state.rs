@@ -35,7 +35,7 @@ impl TryFrom<i32> for State {
   }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum StateError {
   InvalidState(i32),
 }

@@ -1,6 +1,6 @@
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq)]
 pub enum PolarityError {
-  InvalidPolarity(i32),
+  InvalidPolarity(f64),
 }
 
 impl std::fmt::Display for PolarityError {

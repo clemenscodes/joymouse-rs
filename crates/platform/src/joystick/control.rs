@@ -1,8 +1,7 @@
+use controller::{State, Vector};
+
 use crate::{
-  joystick::{
-    axis::JoyStickAxis, polarity::Polarity, vector::Vector, ControllerJoyStickEvent, JoyStick,
-  },
-  state::State,
+  joystick::{axis::JoyStickAxis, polarity::Polarity, ControllerJoyStickEvent, JoyStick},
   Controller,
 };
 
@@ -18,7 +17,17 @@ impl Controller {
     }
 
     let direction = self.left_stick.lock().unwrap().direction();
-    let vector = Vector::from((axis, polarity, joystick, direction));
+
+    let vector = match joystick {
+      JoyStick::Left => direction.map(Vector::from).unwrap_or_default().flipped_y(),
+      JoyStick::Right => {
+        let delta = f64::from(polarity);
+        match axis {
+          JoyStickAxis::X => Vector::new(delta, 0.0),
+          JoyStickAxis::Y => Vector::new(0.0, delta),
+        }
+      }
+    };
 
     if *joystick == JoyStick::Right {
       let vector = self.right_stick.lock().unwrap().micro(vector);
