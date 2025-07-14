@@ -1,5 +1,4 @@
-use controller::{State, Vector};
-use io::Polarity;
+use controller::{Polarity, State, Vector};
 
 use crate::{
   joystick::{axis::JoyStickAxis, ControllerJoyStickEvent, JoyStick},

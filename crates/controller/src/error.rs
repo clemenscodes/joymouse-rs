@@ -1,6 +1,4 @@
-use io::ButtonError;
-
-use crate::JoyStickError;
+use crate::{ButtonError, JoyStickError};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ControllerError {

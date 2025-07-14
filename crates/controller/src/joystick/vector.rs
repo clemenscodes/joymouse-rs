@@ -1,6 +1,8 @@
-use crate::joystick::{direction::Direction, JoyStick};
+use crate::{
+  joystick::{direction::Direction, JoyStick},
+  Axis, Polarity,
+};
 
-use io::{Axis, Polarity};
 use settings::{MAX_STICK_TILT, MIN_STICK_TILT};
 
 #[derive(Default, Debug, Copy, Clone)]

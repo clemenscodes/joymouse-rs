@@ -3,9 +3,8 @@ use crate::{
   joystick::{keys::JoyStickKeys, JOYSTICK_KEYS},
 };
 
-use controller::ControllerButton;
+use controller::{AxisError, ControllerButton};
 use evdev::{KeyCode, KeyEvent, RelativeAxisCode, RelativeAxisEvent};
-use io::AxisError;
 
 #[derive(Debug)]
 pub enum JoyStickAxis {

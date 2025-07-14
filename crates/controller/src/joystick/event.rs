@@ -1,6 +1,4 @@
-use io::{Axis, Polarity};
-
-use crate::JoyStick;
+use crate::{Axis, JoyStick, Polarity};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct JoyStickEvent {

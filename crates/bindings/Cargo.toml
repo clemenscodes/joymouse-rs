@@ -1,9 +1,11 @@
 [package]
-name = "controller"
+name = "bindings"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
 authors.workspace = true
 
 [dependencies]
+io = { path = "../io" }
 settings = { path = "../settings" }
+controller = { path = "../controller" }
