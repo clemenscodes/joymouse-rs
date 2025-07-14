@@ -1,10 +1,6 @@
 use std::time::Instant;
 
-use crate::{
-  joystick::{direction::Direction, motion::Motion, vector::Vector},
-  state::State,
-};
-
+use controller::{Direction, Motion, State, Vector};
 use settings::{LEFT_STICK_SENSITIVITY, MAX_STICK_TILT, SETTINGS};
 
 #[derive(Debug)]

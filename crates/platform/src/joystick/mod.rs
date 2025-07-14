@@ -1,13 +1,10 @@
 mod axis;
+mod polarity;
 mod control;
-mod direction;
 mod error;
 mod event;
 mod keys;
-mod motion;
-mod polarity;
 mod state;
-mod vector;
 
 use evdev::{KeyCode, KeyEvent, RelativeAxisCode, RelativeAxisEvent};
 
@@ -58,9 +55,7 @@ impl TryFrom<KeyEvent> for JoyStick {
 }
 
 pub use axis::{AxisError, JoyStickAxis};
-pub use direction::Direction;
 pub use error::JoyStickError;
 pub use event::ControllerJoyStickEvent;
 pub use keys::JOYSTICK_KEYS;
 pub use state::JoyStickState;
-pub use vector::Vector;

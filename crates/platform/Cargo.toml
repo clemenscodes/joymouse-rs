@@ -8,6 +8,7 @@ authors.workspace = true
 [dependencies]
 settings = { path = "../settings" }
 io = { path = "../io" }
+controller = { path = "../controller" }
 
 [target.'cfg(not(windows))'.dependencies]
 epoll = "4.3.3"

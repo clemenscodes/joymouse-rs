@@ -48,7 +48,7 @@ impl From<(&JoyStickAxis, Polarity, &JoyStick, Option<Direction>)> for Vector {
     match joystick {
       JoyStick::Left => direction.map(Vector::from).unwrap_or_default().flipped_y(),
       JoyStick::Right => {
-        let delta = i32::from(polarity) as f64;
+        let delta = f64::from(polarity);
         match axis {
           JoyStickAxis::X => Vector::new(delta, 0.0),
           JoyStickAxis::Y => Vector::new(0.0, delta),

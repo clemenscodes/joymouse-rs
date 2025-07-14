@@ -1,6 +1,6 @@
 use crate::button::ControllerButton;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum ButtonError {
   UnsupportedKeyCode(u16),
   InvalidButton(ControllerButton),

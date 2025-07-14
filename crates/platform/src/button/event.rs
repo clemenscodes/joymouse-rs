@@ -1,9 +1,7 @@
+use controller::State;
 use evdev::{EventType, InputEvent, KeyCode, KeyEvent};
 
-use crate::{
-  button::{ButtonError, ControllerButton},
-  state::State,
-};
+use crate::button::{ButtonError, ControllerButton};
 
 #[derive(Debug)]
 pub struct ControllerButtonEvent {
