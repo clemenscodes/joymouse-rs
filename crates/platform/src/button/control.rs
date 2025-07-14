@@ -1,9 +1,10 @@
-use evdev::InputEvent;
+use controller::ButtonEvent;
 
-use crate::{button::event::ControllerButtonEvent, Controller};
+use crate::{button::from_button_event_for_input_event, Controller};
 
 impl Controller {
-  pub fn handle_button_event(&mut self, event: ControllerButtonEvent) {
-    self.emit_button_events(&[InputEvent::from(event)]);
+  pub fn handle_button_event(&mut self, event: ButtonEvent) {
+    let button_event = from_button_event_for_input_event(event);
+    self.emit_button_events(&[button_event]);
   }
 }
