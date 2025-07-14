@@ -1,5 +1,6 @@
-use crate::joystick::{axis::JoyStickAxis, direction::Direction, polarity::Polarity, JoyStick};
+use crate::joystick::{direction::Direction, JoyStick};
 
+use io::{Axis, Polarity};
 use settings::{MAX_STICK_TILT, MIN_STICK_TILT};
 
 #[derive(Default, Debug, Copy, Clone)]
@@ -42,16 +43,16 @@ impl std::ops::Mul<f64> for Vector {
   }
 }
 
-impl From<(&JoyStickAxis, Polarity, &JoyStick, Option<Direction>)> for Vector {
-  fn from(value: (&JoyStickAxis, Polarity, &JoyStick, Option<Direction>)) -> Self {
+impl From<(&Axis, Polarity, &JoyStick, Option<Direction>)> for Vector {
+  fn from(value: (&Axis, Polarity, &JoyStick, Option<Direction>)) -> Self {
     let (axis, polarity, joystick, direction) = value;
     match joystick {
       JoyStick::Left => direction.map(Vector::from).unwrap_or_default().flipped_y(),
       JoyStick::Right => {
-        let delta = f64::from(polarity);
+        let delta = i32::from(polarity) as f64;
         match axis {
-          JoyStickAxis::X => Vector::new(delta, 0.0),
-          JoyStickAxis::Y => Vector::new(0.0, delta),
+          Axis::X => Vector::new(delta, 0.0),
+          Axis::Y => Vector::new(0.0, delta),
         }
       }
     }

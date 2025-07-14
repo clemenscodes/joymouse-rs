@@ -7,6 +7,8 @@ pub use button::*;
 pub use error::*;
 pub use event::*;
 pub use joystick::*;
+
+use io::{Axis, Polarity};
 use settings::SETTINGS;
 
 use std::sync::{Arc, Mutex};
@@ -90,15 +92,15 @@ impl VirtualController {
     }
   }
 
-  fn update_left_stick_direction(&self, axis: &JoyStickAxis, polarity: Polarity, state: &State) {
+  fn update_left_stick_direction(&self, axis: &Axis, polarity: Polarity, state: &State) {
     let mut stick = self.left_stick.lock().unwrap();
 
     match axis {
-      JoyStickAxis::X => match polarity {
+      Axis::X => match polarity {
         Polarity::Negative(_) => stick.set_left(*state),
         Polarity::Positive(_) => stick.set_right(*state),
       },
-      JoyStickAxis::Y => match polarity {
+      Axis::Y => match polarity {
         Polarity::Negative(_) => stick.set_down(*state),
         Polarity::Positive(_) => stick.set_up(*state),
       },
@@ -123,19 +125,19 @@ impl VirtualController {
     };
 
     self.emit(&[
-      Self::get_stick_event(JoyStick::Left, JoyStickAxis::X, x),
-      Self::get_stick_event(JoyStick::Left, JoyStickAxis::Y, y),
+      Self::get_stick_event(JoyStick::Left, Axis::X, x),
+      Self::get_stick_event(JoyStick::Left, Axis::Y, y),
     ])
   }
 
   fn move_right_stick(&mut self, vector: Vector) -> Result<(), ControllerError> {
     self.emit(&[
-      Self::get_stick_event(JoyStick::Right, JoyStickAxis::X, vector.dx()),
-      Self::get_stick_event(JoyStick::Right, JoyStickAxis::Y, vector.dy()),
+      Self::get_stick_event(JoyStick::Right, Axis::X, vector.dx()),
+      Self::get_stick_event(JoyStick::Right, Axis::Y, vector.dy()),
     ])
   }
 
-  fn get_stick_event(stick: JoyStick, axis: JoyStickAxis, value: f64) -> ControllerEvent {
+  fn get_stick_event(stick: JoyStick, axis: Axis, value: f64) -> ControllerEvent {
     let polarity = Polarity::try_from(value).unwrap();
     let joystick_event = JoyStickEvent::new(stick, axis, polarity);
     ControllerEvent::from(joystick_event)
