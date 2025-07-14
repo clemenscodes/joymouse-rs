@@ -39,6 +39,13 @@ jobs:
           cachix push ${{ env.NIX_CACHE }} ${{ env.NIX_DEV_PROFILE }}
       - name: Check flake
         run: nix flake check --accept-flake-config
+      - name: Build joymouse.exe
+        run: |
+          nix build .#joymouse-win --accept-flake-config --json \
+            | jq -r '.[].outputs | to_entries[].value' \
+            | cachix push ${{ env.NIX_CACHE }}
+          joymouse_exe_path=$(readlink -f result/bin/joymouse.exe)
+          echo "joymouse_exe_path=$joymouse_exe_path" >> $GITHUB_ENV
       - name: Build static musl joymouse
         run: |
           nix build .#joymouse-musl-static --accept-flake-config --json \
@@ -56,6 +63,7 @@ jobs:
       - name: Prepare release artifacts
         run: |
           mkdir -p release
+          cp "$joymouse_exe_path" release/joymouse.exe
           cp "$joymouse_musl_static" release/joymouse-musl-static
           cp "$joymouse_glibc_path" release/joymouse
       - name: Release
@@ -67,6 +75,7 @@ jobs:
           body: |
             Latest compiled executables from the main branch:
 
+            - `joymouse.exe`: Windows build
             - `joymouse-musl-static`: Statically linked Linux build
             - `joymouse`: Dynamically linked (glibc) Linux build
           files: release/*

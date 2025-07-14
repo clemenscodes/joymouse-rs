@@ -4,7 +4,7 @@ use io::Key;
 
 use evdev::{EventSummary, KeyEvent, RelativeAxisEvent};
 
-use crate::{
+use crate::linux::{
   button::try_from_key_event_for_button_event,
   joystick::{
     try_from_key_event_for_joystick_event, try_from_relative_axis_event_for_joystick_event,

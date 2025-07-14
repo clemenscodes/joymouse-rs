@@ -93,6 +93,20 @@
         CARGO_BUILD_TARGET = "x86_64-unknown-linux-musl";
         CARGO_BUILD_RUSTFLAGS = "-C target-feature=+crt-static -C link-args=-static -C relocation-model=static -C strip=symbols";
       });
+
+    joymouse-win = craneLib.buildPackage (args
+      // rec {
+        TARGET_CC = "${pkgs.pkgsCross.mingwW64.stdenv.cc}/bin/${pkgs.pkgsCross.mingwW64.stdenv.cc.targetPrefix}cc";
+        CARGO_BUILD_TARGET = "x86_64-pc-windows-gnu";
+        CARGO_BUILD_RUSTFLAGS = "-C target-feature=+crt-static -C link-args=-static -C linker=${TARGET_CC} -C strip=symbols";
+        OPENSSL_DIR = "${pkgs.openssl.dev}";
+        OPENSSL_LIB_DIR = "${pkgs.openssl.out}/lib";
+        OPENSSL_INCLUDE_DIR = "${pkgs.openssl.dev}/include/";
+        depsBuildBuild = with pkgs.pkgsCross; [
+          mingwW64.stdenv.cc
+          mingwW64.windows.pthreads
+        ];
+      });
   in
     flake-parts.lib.mkFlake {inherit inputs;} {
       imports = [inputs.flake-parts.flakeModules.easyOverlay];
@@ -146,6 +160,7 @@
               libevdev
               udev
               dbus
+              pkgsCross.mingwW64.openssl
             ];
             nativeBuildInputs = with pkgs; [
               pkg-config
@@ -159,9 +174,22 @@
               libinput
               evtest
               interception-tools
+              pkgsCross.mingwW64.stdenv.cc
+              pkgsCross.mingwW64.windows.pthreads
             ];
             RUST_SRC_PATH = "${craneLib.rustc}/lib/rustlib/src/rust/library";
             RUST_BACKTRACE = 1;
+            TARGET_CC = "${pkgs.pkgsCross.mingwW64.stdenv.cc}/bin/${pkgs.pkgsCross.mingwW64.stdenv.cc.targetPrefix}cc";
+            CARGO_BUILD_TARGET = "x86_64-pc-windows-gnu";
+            shellHook = ''
+              export CC=${pkgs.pkgsCross.mingwW64.stdenv.cc}/bin/x86_64-w64-mingw32-cc
+              export CXX=${pkgs.pkgsCross.mingwW64.stdenv.cc}/bin/x86_64-w64-mingw32-c++
+              export PATH=${pkgs.pkgsCross.mingwW64.stdenv.cc}/bin:$PATH
+              export RUSTFLAGS="-L ${pkgs.pkgsCross.mingwW64.windows.pthreads}/lib"
+              export OPENSSL_DIR="${pkgs.pkgsCross.mingwW64.openssl.dev}"
+              export OPENSSL_LIB_DIR="${pkgs.pkgsCross.mingwW64.openssl.out}/lib"
+              export OPENSSL_INCLUDE_DIR="${pkgs.pkgsCross.mingwW64.openssl.dev}/include"
+            '';
           };
         };
       };

@@ -1,7 +1,9 @@
 use controller::{ButtonError, ButtonEvent, State};
 use evdev::{EventType, InputEvent, KeyEvent};
 
-use crate::button::{try_controller_button_from_keycode, try_key_code_from_controller_button};
+use crate::linux::button::{
+  try_controller_button_from_keycode, try_key_code_from_controller_button,
+};
 
 pub fn try_from_key_event_for_button_event(event: KeyEvent) -> Result<ButtonEvent, ButtonError> {
   let code = event.code();

@@ -1,5 +1,3 @@
-use crate::ButtonError;
-
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum State {
   Pressed,
