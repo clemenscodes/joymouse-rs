@@ -2,7 +2,7 @@ use bindings::JOYSTICK_KEYS;
 use controller::{JoyStick, JoyStickError, JoyStickEvent, Polarity, State};
 use evdev::{KeyEvent, RelativeAxisEvent};
 
-use crate::{
+use crate::linux::{
   button::try_controller_button_from_keycode,
   joystick::{
     axis::{try_from_jk_kc_for_axis, try_from_relative_axis_code_for_axis},
