@@ -2,8 +2,10 @@ mod control;
 mod error;
 mod event;
 
+pub use event::*;
+
 use crate::keys::KEYBOARD_BUTTON_MAP;
-use controller::ControllerButton;
+use controller::{ButtonError, ControllerButton};
 use evdev::KeyCode;
 
 pub fn try_key_code_from_controller_button(
@@ -35,9 +37,6 @@ pub fn try_controller_button_from_keycode(code: KeyCode) -> Result<ControllerBut
   if let Some(button) = KEYBOARD_BUTTON_MAP.get(&code) {
     Ok(*button)
   } else {
-    Err(ButtonError::UnsupportedKeyCode(code))
+    Err(ButtonError::UnsupportedKeyCode(code.code()))
   }
 }
-
-pub use error::ButtonError;
-pub use event::ControllerButtonEvent;

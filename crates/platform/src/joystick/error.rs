@@ -1,7 +1,5 @@
-use controller::{AxisError, PolarityError, StateError};
+use controller::{AxisError, ButtonError, PolarityError, StateError};
 use evdev::{KeyCode, RelativeAxisCode};
-
-use crate::button::ButtonError;
 
 #[derive(Debug)]
 pub enum JoyStickError {
