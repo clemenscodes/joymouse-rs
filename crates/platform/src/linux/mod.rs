@@ -5,8 +5,8 @@ mod joystick;
 use crate::linux::event::try_from_event_summary_for_controller_event;
 
 use controller::{
-  ButtonEvent, ControllerError, ControllerEvent, ControllerEventEmitter, JoyStickEvent,
-  JoyStickState, VirtualController,
+  ButtonEvent, ControllerButton, ControllerError, ControllerEvent, ControllerEventEmitter,
+  JoyStickEvent, JoyStickState, VirtualController,
 };
 use settings::{MAX_STICK_TILT, MIN_STICK_TILT};
 
@@ -39,9 +39,27 @@ pub fn from_controller_event_for_input_event(event: ControllerEvent) -> InputEve
 }
 
 pub fn from_button_event_for_input_event(event: ButtonEvent) -> InputEvent {
-  todo!()
-  // let value: i32 = event.state().into();
-  // InputEvent::new(EventType::KEY.0, code, value)
+  let value: i32 = (*event.state()).into();
+  let code = match event.button() {
+    ControllerButton::South => KeyCode::BTN_SOUTH,
+    ControllerButton::East => todo!(),
+    ControllerButton::North => todo!(),
+    ControllerButton::West => todo!(),
+    ControllerButton::Up => todo!(),
+    ControllerButton::Down => todo!(),
+    ControllerButton::Left => todo!(),
+    ControllerButton::Right => todo!(),
+    ControllerButton::L1 => todo!(),
+    ControllerButton::R1 => todo!(),
+    ControllerButton::L2 => todo!(),
+    ControllerButton::R2 => todo!(),
+    ControllerButton::L3 => todo!(),
+    ControllerButton::R3 => todo!(),
+    ControllerButton::Start => todo!(),
+    ControllerButton::Select => todo!(),
+    _ => todo!(),
+  };
+  InputEvent::new(EventType::KEY.0, code.code(), value)
 }
 
 pub fn from_joystick_event_for_input_event(event: JoyStickEvent) -> InputEvent {

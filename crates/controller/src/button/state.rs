@@ -21,6 +21,16 @@ impl State {
   }
 }
 
+impl From<State> for i32 {
+  fn from(state: State) -> Self {
+    match state {
+      State::Released => 0,
+      State::Pressed => 1,
+      State::Held => 2,
+    }
+  }
+}
+
 impl TryFrom<i32> for State {
   type Error = StateError;
 
