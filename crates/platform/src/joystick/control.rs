@@ -1,9 +1,6 @@
-use controller::{Axis, Polarity, State, Vector};
+use controller::{Axis, JoyStick, Polarity, State, Vector};
 
-use crate::{
-  joystick::{ControllerJoyStickEvent, JoyStick},
-  Controller,
-};
+use crate::{joystick::ControllerJoyStickEvent, Controller};
 
 impl Controller {
   pub fn handle_joystick_event(&mut self, event: ControllerJoyStickEvent) {

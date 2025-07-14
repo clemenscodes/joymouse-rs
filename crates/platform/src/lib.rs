@@ -3,12 +3,9 @@ mod event;
 mod joystick;
 mod keys;
 
-use crate::{
-  event::ControllerEvent,
-  joystick::{JoyStick, JoyStickState},
-};
+use crate::event::ControllerEvent;
 
-use controller::{Axis, Direction, Vector};
+use controller::{Axis, Direction, JoyStick, JoyStickState, Vector};
 use settings::{MAX_STICK_TILT, MIN_STICK_TILT, SETTINGS};
 
 use std::{

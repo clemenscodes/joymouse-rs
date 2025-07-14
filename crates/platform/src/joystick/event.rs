@@ -1,4 +1,4 @@
-use controller::{Axis, JoyStickError, Polarity, State};
+use controller::{Axis, JoyStick, JoyStickError, Polarity, State};
 use evdev::{AbsoluteAxisCode, KeyEvent, RelativeAxisEvent};
 
 use crate::{
@@ -6,7 +6,7 @@ use crate::{
   joystick::{
     axis::{try_from_jk_kc_for_axis, try_from_relative_axis_code_for_axis},
     polarity::try_from_event_tuple_for_polarity,
-    JoyStick, JOYSTICK_KEYS,
+    try_from_relative_axis_code_for_joystick, JOYSTICK_KEYS,
   },
 };
 
@@ -64,7 +64,7 @@ impl TryFrom<RelativeAxisEvent> for ControllerJoyStickEvent {
 
   fn try_from(value: RelativeAxisEvent) -> Result<Self, Self::Error> {
     let (code, value) = value.destructure();
-    let joystick = JoyStick::try_from(code)?;
+    let joystick = try_from_relative_axis_code_for_joystick(code)?;
     let axis = try_from_relative_axis_code_for_axis(code)?;
     let polarity = Polarity::try_from(value as f64)?;
     let state = State::Pressed;
