@@ -6,6 +6,6 @@ license.workspace = true
 authors.workspace = true
 
 [dependencies]
+controller = { path = "../controller" }
 io = { path = "../io" }
 settings = { path = "../settings" }
-controller = { path = "../controller" }
