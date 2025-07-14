@@ -1,16 +1,10 @@
-use crate::{ControllerButton, KeyError};
+use crate::ControllerButton;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ButtonError {
   UnsupportedKeyCode(u16),
   InvalidButton(ControllerButton),
   InvalidKey(String),
-}
-
-impl From<KeyError> for ButtonError {
-  fn from(e: KeyError) -> Self {
-    ButtonError::InvalidKey(format!("{}", e))
-  }
 }
 
 impl From<u16> for ButtonError {

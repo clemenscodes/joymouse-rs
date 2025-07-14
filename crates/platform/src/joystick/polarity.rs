@@ -1,7 +1,6 @@
 use crate::joystick::{axis::JoyStickAxis, JoyStickError};
 
-use controller::ControllerButton;
-use io::Polarity;
+use controller::{ControllerButton, Polarity};
 
 use evdev::KeyCode;
 

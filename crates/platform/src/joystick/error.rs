@@ -1,6 +1,5 @@
-use controller::StateError;
+use controller::{AxisError, PolarityError, StateError};
 use evdev::{KeyCode, RelativeAxisCode};
-use io::{AxisError, PolarityError};
 
 use crate::button::ButtonError;
 

@@ -1,6 +1,4 @@
-use io::{AxisError, ButtonError, PolarityError};
-
-use crate::StateError;
+use crate::{AxisError, ButtonError, PolarityError, StateError};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum JoyStickError {

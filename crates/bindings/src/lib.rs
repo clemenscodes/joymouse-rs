@@ -1,8 +1,7 @@
-use crate::ControllerButton;
-
-use io::{AlphabeticKey, ArrowKey, Key, ModifierKey, MouseKey, NumericKey, SystemKey};
-
 use std::{collections::HashMap, sync::LazyLock};
+
+use controller::ControllerButton;
+use io::{AlphabeticKey, ArrowKey, Key, ModifierKey, MouseKey, NumericKey, SystemKey};
 
 pub static JOYSTICK_KEYS: LazyLock<JoyStickKeys> = LazyLock::new(JoyStickKeys::default);
 

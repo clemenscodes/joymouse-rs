@@ -8,7 +8,6 @@ pub use error::*;
 pub use event::*;
 pub use joystick::*;
 
-use io::{Axis, Polarity};
 use settings::SETTINGS;
 
 use std::sync::{Arc, Mutex};

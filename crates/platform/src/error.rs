@@ -1,5 +1,5 @@
+use controller::AxisError;
 use evdev::EventSummary;
-use io::AxisError;
 
 use crate::{button::ButtonError, joystick::JoyStickError};
 

@@ -1,10 +1,8 @@
-mod axis;
 mod event;
-mod polarity;
 
-pub use axis::{Axis, AxisError};
 pub use event::MovementEvent;
-pub use polarity::{Polarity, PolarityError};
+
+use controller::{Axis, Polarity};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct Movement {

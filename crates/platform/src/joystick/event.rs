@@ -1,6 +1,5 @@
-use controller::State;
+use controller::{Polarity, State};
 use evdev::{AbsoluteAxisCode, KeyEvent, RelativeAxisEvent};
-use io::Polarity;
 
 use crate::{
   button::try_controller_button_from_keycode,

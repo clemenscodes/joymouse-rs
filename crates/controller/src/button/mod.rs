@@ -1,7 +1,9 @@
 mod event;
+mod error;
 mod state;
 
 pub use event::*;
+pub use error::*;
 pub use state::*;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
