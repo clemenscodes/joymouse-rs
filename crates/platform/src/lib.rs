@@ -1,7 +1,6 @@
 mod button;
 mod event;
 mod joystick;
-mod keys;
 
 use crate::{
   button::from_button_event_for_input_event, event::try_from_event_summary_for_controller_event,

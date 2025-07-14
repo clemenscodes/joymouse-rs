@@ -1,6 +1,5 @@
 mod axis;
 mod event;
-mod keys;
 mod polarity;
 
 pub use event::*;
@@ -19,5 +18,3 @@ pub fn try_from_relative_axis_code_for_joystick(
   };
   Ok(joystick)
 }
-
-pub use keys::JOYSTICK_KEYS;

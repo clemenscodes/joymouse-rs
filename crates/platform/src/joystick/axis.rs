@@ -1,15 +1,16 @@
-use crate::joystick::keys::JoyStickKeys;
-
+use bindings::JoyStickKeys;
 use controller::{Axis, AxisError};
 
 use evdev::{KeyCode, RelativeAxisCode};
+use io::Key;
 
 pub fn try_from_jk_kc_for_axis(keys: &JoyStickKeys, code: KeyCode) -> Result<Axis, AxisError> {
-  if !keys.code_is_joystick_key(code) {
+  let key = Key::try_from(code).map_err(|_| AxisError::Unknown)?;
+  if !keys.key_is_joystick_key(key) {
     return Err(AxisError::Unknown);
   }
 
-  let axis = if keys.forward().contains(&code) || keys.backward().contains(&code) {
+  let axis = if keys.forward().contains(&key) || keys.backward().contains(&key) {
     Axis::Y
   } else {
     Axis::X
