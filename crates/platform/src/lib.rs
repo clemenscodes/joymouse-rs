@@ -1,5 +1,4 @@
 mod button;
-mod error;
 mod event;
 mod joystick;
 mod keys;

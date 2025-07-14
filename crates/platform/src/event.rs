@@ -1,8 +1,8 @@
+use controller::ControllerError;
 use evdev::{EventSummary, KeyEvent, RelativeAxisEvent};
 
 use crate::{
   button::ControllerButtonEvent,
-  error::ControllerError,
   joystick::{ControllerJoyStickEvent, JOYSTICK_KEYS},
 };
 
@@ -56,7 +56,7 @@ impl TryFrom<EventSummary> for ControllerEvent {
     let event = match value {
       EventSummary::Key(event, _, _) => Self::try_from(event)?,
       EventSummary::RelativeAxis(event, _, _) => Self::try_from(event)?,
-      other => return Err(ControllerError::UnsupportedEvent(other)),
+      _ => return Err(ControllerError::UnsupportedEvent),
     };
 
     Ok(event)

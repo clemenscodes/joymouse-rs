@@ -13,12 +13,12 @@ pub fn try_from_event_tuple_for_polarity(
     JoyStickAxis::X => match button {
       ControllerButton::Starboard => Ok(Polarity::Positive(1)),
       ControllerButton::Port => Ok(Polarity::Negative(-1)),
-      _ => Err(JoyStickError::UnsupportedKeyCode(code)),
+      _ => Err(JoyStickError::UnsupportedCode(code.code())),
     },
     JoyStickAxis::Y => match button {
       ControllerButton::Forward => Ok(Polarity::Positive(1)),
       ControllerButton::Backward => Ok(Polarity::Negative(-1)),
-      _ => Err(JoyStickError::UnsupportedKeyCode(code)),
+      _ => Err(JoyStickError::UnsupportedCode(code.code())),
     },
   }
 }

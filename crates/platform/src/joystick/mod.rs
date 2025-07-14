@@ -1,10 +1,11 @@
 mod axis;
 mod control;
-mod error;
 mod event;
 mod keys;
 mod polarity;
 mod state;
+
+use controller::JoyStickError;
 
 use evdev::{KeyCode, KeyEvent, RelativeAxisCode, RelativeAxisEvent};
 
@@ -21,7 +22,7 @@ impl TryFrom<RelativeAxisCode> for JoyStick {
     let joystick = match value {
       RelativeAxisCode::REL_X => Self::Right,
       RelativeAxisCode::REL_Y => Self::Right,
-      other => return Err(JoyStickError::UnsupportedAxisCode(other)),
+      other => return Err(JoyStickError::UnsupportedCode(other.0)),
     };
     Ok(joystick)
   }
@@ -40,7 +41,7 @@ impl TryFrom<KeyCode> for JoyStick {
 
   fn try_from(value: KeyCode) -> Result<Self, Self::Error> {
     if !JOYSTICK_KEYS.code_is_joystick_key(value) {
-      return Err(JoyStickError::UnsupportedKeyCode(value));
+      return Err(JoyStickError::UnsupportedCode(value.0));
     }
     Ok(JoyStick::Left)
   }
@@ -55,7 +56,6 @@ impl TryFrom<KeyEvent> for JoyStick {
 }
 
 pub use axis::JoyStickAxis;
-pub use error::JoyStickError;
 pub use event::ControllerJoyStickEvent;
 pub use keys::JOYSTICK_KEYS;
 pub use state::JoyStickState;
