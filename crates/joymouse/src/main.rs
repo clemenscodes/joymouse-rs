@@ -1,10 +1,12 @@
+use controller::PlatformControllerManager;
+
 fn main() {
   #[cfg(not(windows))]
   {
-    platform::linux::Controller::run()
+    platform::linux::Controller::run().unwrap()
   }
   #[cfg(windows)]
   {
-    platform::windows::Controller::run()
+    platform::windows::Controller::run().unwrap()
   }
 }

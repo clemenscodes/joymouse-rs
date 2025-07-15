@@ -7,7 +7,8 @@ use crate::linux::event::{
 };
 
 use controller::{
-  ControllerError, ControllerEvent, ControllerEventEmitter, JoyStickState, VirtualController,
+  ControllerError, ControllerEvent, ControllerEventEmitter, JoyStickState,
+  PlatformControllerManager, PlatformControllerOps, VirtualController, VirtualControllerCore,
 };
 use settings::{MAX_STICK_TILT, MIN_STICK_TILT};
 
@@ -32,14 +33,14 @@ pub struct Controller {
 
 #[rustfmt::skip]
 impl ControllerEventEmitter for Controller {
-  fn emit(&mut self, events: &[ControllerEvent]) -> Result<(), ControllerError> {
-    let input_events: Vec<InputEvent> = events
-      .iter()
-      .map(|e| from_controller_event_for_input_event(*e))
-      .collect();
-    self.virtual_device.emit(&input_events).unwrap();
-    Ok(())
-  }
+    fn emit(&mut self, events: &[ControllerEvent]) -> Result<(), ControllerError> {
+        let input_events: Vec<InputEvent> = events
+            .iter()
+            .map(|e| from_controller_event_for_input_event(*e))
+            .collect();
+        self.virtual_device.emit(&input_events).unwrap();
+        Ok(())
+    }
 }
 
 impl VirtualController for Controller {
@@ -60,26 +61,25 @@ impl VirtualController for Controller {
   }
 }
 
-impl Controller {
-  pub fn run() {
-    let mouse = Arc::new(Mutex::new(Self::init_mouse()));
-    let keyboard = Arc::new(Mutex::new(Self::init_keyboard()));
-    let controller = Arc::new(Mutex::new(Self::try_create().unwrap()));
-
-    let left_stick = Arc::clone(&controller);
-    std::thread::spawn(move || Self::monitor_left_stick(left_stick));
-
-    let right_stick = Arc::clone(&controller);
-    std::thread::spawn(move || Self::monitor_right_stick(right_stick));
-
-    let io = std::thread::spawn(move || Self::monitor_io(mouse, keyboard, controller));
-
-    println!("Started JoyMouse 🎮🐭");
-
-    io.join().unwrap();
-  }
+impl PlatformControllerManager for Controller {
+  type Ops = LinuxOps;
 
   fn try_create() -> Result<Self, Box<dyn std::error::Error>> {
+    Ok(Self {
+      virtual_device: LinuxOps::create_virtual_controller()?,
+      left_stick: Arc::new(Mutex::new(JoyStickState::default())),
+      right_stick: Arc::new(Mutex::new(JoyStickState::default())),
+    })
+  }
+}
+
+pub struct LinuxOps;
+
+impl PlatformControllerOps for LinuxOps {
+  type VirtualDevice = VirtualDevice;
+  type PhysicalDevice = Device;
+
+  fn create_virtual_controller() -> Result<VirtualDevice, Box<dyn std::error::Error>> {
     let builder = VirtualDevice::builder()?;
 
     let name = "JoyMouse";
@@ -135,38 +135,40 @@ impl Controller {
       .with_absolute_axis(&ry_axis)?
       .build()?;
 
-    Ok(Self {
-      virtual_device,
-      left_stick: Arc::new(Mutex::new(JoyStickState::default())),
-      right_stick: Arc::new(Mutex::new(JoyStickState::default())),
-    })
+    Ok(virtual_device)
   }
 
-  fn init_mouse() -> Device {
+  fn init_mouse() -> Self::PhysicalDevice {
     let mut mice = Self::find_mice();
     Self::find_mouse(&mut mice)
   }
 
-  fn init_keyboard() -> Device {
+  fn init_keyboard() -> Self::PhysicalDevice {
     let mut candidates = Self::find_keyboards();
     Self::find_keyboard(&mut candidates)
   }
 
   fn monitor_io(
-    mouse: Arc<Mutex<Device>>,
-    keyboard: Arc<Mutex<Device>>,
-    controller: Arc<Mutex<Self>>,
-  ) {
+    mouse: Self::PhysicalDevice,
+    keyboard: Self::PhysicalDevice,
+    controller: Arc<Mutex<dyn VirtualControllerCore>>,
+  ) -> ! {
     let epoll_fd = Self::create_epoll_fd();
 
-    let devices = [mouse, keyboard];
-    let mut fd_map = HashMap::new();
+    let mut fd_map: HashMap<i32, Self::PhysicalDevice> = HashMap::new();
 
-    for device in devices.iter() {
-      let fd = device.lock().unwrap().as_raw_fd();
+    {
+      let fd = mouse.as_raw_fd();
       let event = Event::new(Events::EPOLLIN, fd as u64);
       epoll::ctl(epoll_fd, epoll::ControlOptions::EPOLL_CTL_ADD, fd, event).unwrap();
-      fd_map.insert(fd, Arc::clone(device));
+      fd_map.insert(fd, mouse);
+    }
+
+    {
+      let fd = keyboard.as_raw_fd();
+      let event = Event::new(Events::EPOLLIN, fd as u64);
+      epoll::ctl(epoll_fd, epoll::ControlOptions::EPOLL_CTL_ADD, fd, event).unwrap();
+      fd_map.insert(fd, keyboard);
     }
 
     let mut events = vec![Event::new(Events::empty(), 0); fd_map.len()];
@@ -177,8 +179,7 @@ impl Controller {
       for epoll_event in events.iter().take(num_events) {
         let fd = epoll_event.data as i32;
 
-        if let Some(device) = fd_map.get(&fd) {
-          let mut device = device.lock().unwrap();
+        if let Some(device) = fd_map.get_mut(&fd) {
           for event in device.fetch_events().unwrap() {
             if let Ok(event) = try_from_event_summary_for_controller_event(event.destructure()) {
               controller.lock().unwrap().handle_event(event).unwrap();
@@ -188,10 +189,11 @@ impl Controller {
       }
     }
   }
+}
 
+impl LinuxOps {
   fn extract_input_number(phys: Option<&str>) -> Option<u32> {
     phys
-      .as_ref()
       .and_then(|s| s.split('/').next_back())
       .and_then(|last| last.strip_prefix("input"))
       .and_then(|n| n.parse::<u32>().ok())
@@ -211,43 +213,26 @@ impl Controller {
     let mut candidates: Vec<Device> = evdev::enumerate()
       .filter(|(_, device)| {
         let events = device.supported_events();
-
         if !events.contains(EventType::RELATIVE) {
           return false;
         }
 
-        let relative_axes = match device.supported_relative_axes() {
-          Some(axes) => axes,
-          None => return false,
-        };
-
+        let relative_axes = device.supported_relative_axes().unwrap_or_default();
         if !relative_axes.contains(RelativeAxisCode::REL_X) {
           return false;
         }
 
-        let keys = match device.supported_keys() {
-          Some(keys) => keys,
-          None => return false,
-        };
-
+        let keys = device.supported_keys().unwrap_or_default();
         if !keys.contains(KeyCode::BTN_LEFT) {
           return false;
         }
 
-        let misc = match device.misc_properties() {
-          Some(misc) => misc,
-          None => return false,
-        };
-
+        let misc = device.misc_properties().unwrap_or_default();
         if !misc.contains(MiscCode::MSC_SCAN) {
           return false;
         }
 
-        let name = match device.name() {
-          Some(name) => name,
-          None => return false,
-        };
-
+        let name = device.name().unwrap_or("");
         if name.contains("Receiver") {
           return false;
         }
@@ -271,25 +256,16 @@ impl Controller {
     let mut candidates: Vec<Device> = evdev::enumerate()
       .filter(|(_, device)| {
         let events = device.supported_events();
-
         if !events.contains(EventType::KEY) {
           return false;
         }
 
-        let keys = match device.supported_keys() {
-          Some(keys) => keys,
-          None => return false,
-        };
-
+        let keys = device.supported_keys().unwrap_or_default();
         if !keys.contains(KeyCode::KEY_A) {
           return false;
         }
 
-        let name = match device.name() {
-          Some(name) => name,
-          None => return false,
-        };
-
+        let name = device.name().unwrap_or("");
         if name.contains("Receiver")
           || name.contains("Mouse")
           || name.contains("Yubico")
