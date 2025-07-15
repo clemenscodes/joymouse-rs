@@ -1,7 +1,6 @@
 mod alphabetic;
 mod arrow;
 mod error;
-mod event;
 mod function;
 mod modifier;
 mod mouse;
@@ -12,7 +11,6 @@ mod system;
 pub use alphabetic::{AlphabeticKey, AlphabeticKeyError};
 pub use arrow::{ArrowKey, ArrowKeyError};
 pub use error::KeyError;
-pub use event::KeyEvent;
 pub use function::{FunctionKey, FunctionKeyError};
 pub use modifier::{ModifierKey, ModifierKeyError};
 pub use mouse::{MouseKey, MouseKeyError};
