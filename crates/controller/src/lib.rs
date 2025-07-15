@@ -172,3 +172,54 @@ pub trait VirtualController: ControllerEventEmitter {
     ControllerEvent::from(joystick_event)
   }
 }
+
+pub trait VirtualControllerCore: Send + Sync {
+  fn handle_event(&mut self, event: ControllerEvent) -> Result<(), ControllerError>;
+}
+
+impl<T: VirtualController> VirtualControllerCore for T {
+  fn handle_event(&mut self, event: ControllerEvent) -> Result<(), ControllerError> {
+    VirtualController::handle_event(self, event)
+  }
+}
+
+pub trait PlatformControllerOps {
+  type VirtualDevice;
+  type PhysicalDevice;
+
+  fn create_virtual_controller() -> Result<Self::VirtualDevice, Box<dyn std::error::Error>>;
+  fn init_mouse() -> Self::PhysicalDevice;
+  fn init_keyboard() -> Self::PhysicalDevice;
+  fn monitor_io(
+    mouse: Self::PhysicalDevice,
+    keyboard: Self::PhysicalDevice,
+    controller: Arc<Mutex<dyn VirtualControllerCore>>,
+  ) -> !;
+}
+
+pub trait PlatformControllerManager: VirtualController + Sized + 'static {
+  type Ops: PlatformControllerOps;
+
+  fn run() -> Result<(), Box<dyn std::error::Error>> {
+    let controller = Arc::new(Mutex::new(Self::try_create()?));
+
+    let left_stick = Arc::clone(&controller);
+    std::thread::spawn(move || Self::monitor_left_stick(left_stick));
+
+    let right_stick = Arc::clone(&controller);
+    std::thread::spawn(move || Self::monitor_right_stick(right_stick));
+
+    let io = std::thread::spawn(move || {
+      let mouse = Self::Ops::init_mouse();
+      let keyboard = Self::Ops::init_keyboard();
+      Self::Ops::monitor_io(mouse, keyboard, controller);
+    });
+
+    println!("Started JoyMouse 🎮🐭");
+
+    io.join().unwrap();
+    Ok(())
+  }
+
+  fn try_create() -> Result<Self, Box<dyn std::error::Error>>;
+}
