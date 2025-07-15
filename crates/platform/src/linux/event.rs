@@ -2,14 +2,24 @@ use bindings::JOYSTICK_KEYS;
 use controller::{ControllerError, ControllerEvent};
 use io::Key;
 
-use evdev::{EventSummary, KeyEvent, RelativeAxisEvent};
+use evdev::{EventSummary, InputEvent, KeyEvent, RelativeAxisEvent};
 
 use crate::linux::{
-  button::try_from_key_event_for_button_event,
+  button::{from_button_event_for_input_event, try_from_key_event_for_button_event},
   joystick::{
-    try_from_key_event_for_joystick_event, try_from_relative_axis_event_for_joystick_event,
+    from_joystick_event_for_input_event, try_from_key_event_for_joystick_event,
+    try_from_relative_axis_event_for_joystick_event,
   },
 };
+
+pub fn from_controller_event_for_input_event(event: ControllerEvent) -> InputEvent {
+  match event {
+    ControllerEvent::Button(button_event) => from_button_event_for_input_event(button_event),
+    ControllerEvent::JoyStick(joystick_event) => {
+      from_joystick_event_for_input_event(joystick_event)
+    }
+  }
+}
 
 pub fn try_from_key_event_for_controller_event(
   event: KeyEvent,
