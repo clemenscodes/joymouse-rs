@@ -14,3 +14,7 @@ settings = { path = "../settings" }
 [target.'cfg(not(windows))'.dependencies]
 epoll = "4.3.3"
 evdev = "0.13.1"
+
+[target.'cfg(windows)'.dependencies]
+vigem-client = "0.1.4"
+device_query = "4.0.0"
