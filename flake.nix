@@ -179,17 +179,17 @@
             ];
             RUST_SRC_PATH = "${craneLib.rustc}/lib/rustlib/src/rust/library";
             RUST_BACKTRACE = 1;
-            # TARGET_CC = "${pkgs.pkgsCross.mingwW64.stdenv.cc}/bin/${pkgs.pkgsCross.mingwW64.stdenv.cc.targetPrefix}cc";
-            # CARGO_BUILD_TARGET = "x86_64-pc-windows-gnu";
-            # shellHook = ''
-            #   export CC=${pkgs.pkgsCross.mingwW64.stdenv.cc}/bin/x86_64-w64-mingw32-cc
-            #   export CXX=${pkgs.pkgsCross.mingwW64.stdenv.cc}/bin/x86_64-w64-mingw32-c++
-            #   export PATH=${pkgs.pkgsCross.mingwW64.stdenv.cc}/bin:$PATH
-            #   export RUSTFLAGS="-L ${pkgs.pkgsCross.mingwW64.windows.pthreads}/lib"
-            #   export OPENSSL_DIR="${pkgs.pkgsCross.mingwW64.openssl.dev}"
-            #   export OPENSSL_LIB_DIR="${pkgs.pkgsCross.mingwW64.openssl.out}/lib"
-            #   export OPENSSL_INCLUDE_DIR="${pkgs.pkgsCross.mingwW64.openssl.dev}/include"
-            # '';
+            TARGET_CC = "${pkgs.pkgsCross.mingwW64.stdenv.cc}/bin/${pkgs.pkgsCross.mingwW64.stdenv.cc.targetPrefix}cc";
+            CARGO_BUILD_TARGET = "x86_64-pc-windows-gnu";
+            shellHook = ''
+              export CC=${pkgs.pkgsCross.mingwW64.stdenv.cc}/bin/x86_64-w64-mingw32-cc
+              export CXX=${pkgs.pkgsCross.mingwW64.stdenv.cc}/bin/x86_64-w64-mingw32-c++
+              export PATH=${pkgs.pkgsCross.mingwW64.stdenv.cc}/bin:$PATH
+              export RUSTFLAGS="-L ${pkgs.pkgsCross.mingwW64.windows.pthreads}/lib"
+              export OPENSSL_DIR="${pkgs.pkgsCross.mingwW64.openssl.dev}"
+              export OPENSSL_LIB_DIR="${pkgs.pkgsCross.mingwW64.openssl.out}/lib"
+              export OPENSSL_INCLUDE_DIR="${pkgs.pkgsCross.mingwW64.openssl.dev}/include"
+            '';
           };
         };
       };
