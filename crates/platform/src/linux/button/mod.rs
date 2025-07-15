@@ -8,7 +8,7 @@ use io::Key;
 
 use evdev::KeyCode;
 
-pub fn try_key_code_from_controller_button(
+pub fn try_from_controller_button_for_keycode(
   button: ControllerButton,
 ) -> Result<KeyCode, ButtonError> {
   let code = match button {
@@ -33,7 +33,9 @@ pub fn try_key_code_from_controller_button(
   Ok(code)
 }
 
-pub fn try_controller_button_from_keycode(code: KeyCode) -> Result<ControllerButton, ButtonError> {
+pub fn try_from_keycode_for_controller_button(
+  code: KeyCode,
+) -> Result<ControllerButton, ButtonError> {
   let key = Key::try_from(code).map_err(|_| ButtonError::UnsupportedKeyCode(code.code()))?;
   if let Some(button) = KEYBOARD_BUTTON_MAP.get(&key) {
     Ok(*button)

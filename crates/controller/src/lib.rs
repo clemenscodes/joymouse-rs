@@ -26,7 +26,6 @@ pub trait VirtualController: ControllerEventEmitter {
   fn right_stick_mut(&mut self) -> &mut Arc<Mutex<JoyStickState>>;
 
   fn handle_event(&mut self, event: ControllerEvent) -> Result<(), ControllerError> {
-    println!("handling controller event: {:#?}", event);
     match event {
       ControllerEvent::Button(e) => self.handle_button_event(e),
       ControllerEvent::JoyStick(e) => self.handle_joystick_event(e),
