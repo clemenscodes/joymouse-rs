@@ -129,7 +129,7 @@ impl JoyStickState {
   pub fn is_idle(&self, left_stick_direction: Option<Direction>) -> bool {
     let now = Instant::now();
     let timeout = if self.motion == Motion::Micro && left_stick_direction.is_some() {
-      SETTINGS.mouse_idle_timeout() * 5
+      SETTINGS.mouse_idle_timeout() * 2
     } else {
       SETTINGS.mouse_idle_timeout()
     };
