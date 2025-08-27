@@ -1,9 +1,14 @@
-use std::sync::{Arc, Mutex};
+use std::{
+  sync::{Arc, Mutex},
+  time::Duration,
+};
 
 use controller::{
   ControllerError, ControllerEvent, ControllerEventEmitter, JoyStickState,
   PlatformControllerManager, PlatformControllerOps, VirtualController, VirtualControllerCore,
 };
+
+use device_query::{DeviceEvents, DeviceEventsHandler, Keycode, MouseButton};
 
 pub struct Controller {
   left_stick: Arc<Mutex<JoyStickState>>,
@@ -11,8 +16,8 @@ pub struct Controller {
 }
 
 impl ControllerEventEmitter for Controller {
-  fn emit(&mut self, events: &[ControllerEvent]) -> Result<(), ControllerError> {
-    todo!("[Windows] Emit controller events: {:#?}", events);
+  fn emit(&mut self, _events: &[ControllerEvent]) -> Result<(), ControllerError> {
+    Ok(())
   }
 }
 
@@ -40,16 +45,16 @@ impl PlatformControllerOps for WindowsOps {
   type VirtualDevice = ();
   type PhysicalDevice = ();
 
-  fn create_virtual_controller() -> Result<Self::VirtualDevice, Box<dyn std::error::Error>> {
-    todo!("[Windows] Integrate virtual gamepad using ViGEmBus driver and the vigem-client crate");
-  }
-
   fn init_mouse() -> Self::PhysicalDevice {
-    todo!("[Windows] Use device_query to detect mouse");
+    ()
   }
 
   fn init_keyboard() -> Self::PhysicalDevice {
-    todo!("[Windows] Use device_query to detect keyboard");
+    ()
+  }
+
+  fn create_virtual_controller() -> Result<Self::VirtualDevice, Box<dyn std::error::Error>> {
+    todo!("[Windows] Integrate virtual gamepad using ViGEmBus driver and the vigem-client crate");
   }
 
   fn monitor_io(
@@ -57,7 +62,28 @@ impl PlatformControllerOps for WindowsOps {
     _keyboard: Self::PhysicalDevice,
     _controller: Arc<Mutex<dyn VirtualControllerCore>>,
   ) -> ! {
-    todo!("[Windows] Implement event loop for Raw Input (mouse + keyboard)");
+    let handler = DeviceEventsHandler::new(Duration::from_millis(5))
+      .expect("Failed to create DeviceEventsHandler");
+
+    handler.on_key_down(|key: &Keycode| {
+      println!("[key down ] {:?}", key);
+    });
+    handler.on_key_up(|key: &Keycode| {
+      println!("[key up   ] {:?}", key);
+    });
+    handler.on_mouse_move(|pos: &(i32, i32)| {
+      println!("[mouse move] x={}, y={}", pos.0, pos.1);
+    });
+    handler.on_mouse_down(|btn: &MouseButton| {
+      println!("[mouse down] {:?}", btn);
+    });
+    handler.on_mouse_up(|btn: &MouseButton| {
+      println!("[mouse up  ] {:?}", btn);
+    });
+
+    loop {
+      std::thread::sleep(Duration::from_secs(1));
+    }
   }
 }
 
