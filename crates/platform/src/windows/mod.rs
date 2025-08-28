@@ -1,31 +1,28 @@
-use std::{
-  sync::{Arc, Mutex},
-  time::Duration,
-};
+mod device;
+
+use crate::windows::device::VirtualDevice;
 
 use controller::{
   ControllerError, ControllerEvent, ControllerEventEmitter, JoyStickState,
   PlatformControllerManager, PlatformControllerOps, VirtualController, VirtualControllerCore,
 };
 
+use std::{
+  sync::{Arc, Mutex},
+  time::Duration,
+};
+
 use device_query::{DeviceEvents, DeviceEventsHandler, Keycode, MouseButton};
-use vigem_client::{Client, TargetId, XButtons, XGamepad, Xbox360Wired};
 
 pub struct Controller {
-  virtual_device: Arc<Mutex<Xbox360Wired<Client>>>,
+  virtual_device: Arc<Mutex<VirtualDevice>>,
   left_stick: Arc<Mutex<JoyStickState>>,
   right_stick: Arc<Mutex<JoyStickState>>,
 }
 
 impl ControllerEventEmitter for Controller {
-  fn emit(&mut self, _events: &[ControllerEvent]) -> Result<(), ControllerError> {
-    let mut device = self.virtual_device.lock().unwrap();
-    let gamepad = XGamepad {
-      buttons: XButtons!(UP | RIGHT | LB | A | X),
-      ..Default::default()
-    };
-    device.update(&gamepad).unwrap();
-    Ok(())
+  fn emit(&mut self, events: &[ControllerEvent]) -> Result<(), ControllerError> {
+    self.virtual_device.lock().unwrap().emit(events)
   }
 }
 
@@ -50,7 +47,7 @@ impl VirtualController for Controller {
 pub struct WindowsOps;
 
 impl PlatformControllerOps for WindowsOps {
-  type VirtualDevice = Xbox360Wired<Client>;
+  type VirtualDevice = VirtualDevice;
   type PhysicalDevice = ();
 
   fn init_mouse() -> Self::PhysicalDevice {
@@ -62,11 +59,7 @@ impl PlatformControllerOps for WindowsOps {
   }
 
   fn create_virtual_controller() -> Result<Self::VirtualDevice, Box<dyn std::error::Error>> {
-    let client = Client::connect().unwrap();
-    let target_id = TargetId::XBOX360_WIRED;
-    let mut controller = vigem_client::Xbox360Wired::new(client, target_id);
-    controller.plugin().unwrap();
-    controller.wait_ready().unwrap();
+    let controller = Self::VirtualDevice::default();
     Ok(controller)
   }
 
@@ -78,19 +71,19 @@ impl PlatformControllerOps for WindowsOps {
     let handler = DeviceEventsHandler::new(Duration::from_millis(1))
       .expect("Failed to create DeviceEventsHandler");
 
-    handler.on_key_down(|key: &Keycode| {
+    let _g_key_down = handler.on_key_down(|key: &Keycode| {
       println!("[key down ] {:?}", key);
     });
-    handler.on_key_up(|key: &Keycode| {
+    let _g_key_up = handler.on_key_up(|key: &Keycode| {
       println!("[key up   ] {:?}", key);
     });
-    handler.on_mouse_move(|pos: &(i32, i32)| {
+    let _g_mouse_move = handler.on_mouse_move(|pos: &(i32, i32)| {
       println!("[mouse move] x={}, y={}", pos.0, pos.1);
     });
-    handler.on_mouse_down(|btn: &MouseButton| {
+    let _g_mouse_down = handler.on_mouse_down(|btn: &MouseButton| {
       println!("[mouse down] {:?}", btn);
     });
-    handler.on_mouse_up(|btn: &MouseButton| {
+    let _g_mouse_up = handler.on_mouse_up(|btn: &MouseButton| {
       println!("[mouse up  ] {:?}", btn);
     });
 
