@@ -16,5 +16,5 @@ epoll = "4.3.3"
 evdev = "0.13.1"
 
 [target.'cfg(windows)'.dependencies]
-vigem-client = "0.1.4"
+vigem-client = {version = "0.1.4", features = ["unstable_ds4"]}
 device_query = "4.0.0"
