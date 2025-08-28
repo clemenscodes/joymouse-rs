@@ -9,14 +9,22 @@ use controller::{
 };
 
 use device_query::{DeviceEvents, DeviceEventsHandler, Keycode, MouseButton};
+use vigem_client::{Client, TargetId, XButtons, XGamepad, Xbox360Wired};
 
 pub struct Controller {
+  virtual_device: Arc<Mutex<Xbox360Wired<Client>>>,
   left_stick: Arc<Mutex<JoyStickState>>,
   right_stick: Arc<Mutex<JoyStickState>>,
 }
 
 impl ControllerEventEmitter for Controller {
   fn emit(&mut self, _events: &[ControllerEvent]) -> Result<(), ControllerError> {
+    let mut device = self.virtual_device.lock().unwrap();
+    let gamepad = XGamepad {
+      buttons: XButtons!(UP | RIGHT | LB | A | X),
+      ..Default::default()
+    };
+    device.update(&gamepad).unwrap();
     Ok(())
   }
 }
@@ -42,7 +50,7 @@ impl VirtualController for Controller {
 pub struct WindowsOps;
 
 impl PlatformControllerOps for WindowsOps {
-  type VirtualDevice = ();
+  type VirtualDevice = Xbox360Wired<Client>;
   type PhysicalDevice = ();
 
   fn init_mouse() -> Self::PhysicalDevice {
@@ -54,7 +62,12 @@ impl PlatformControllerOps for WindowsOps {
   }
 
   fn create_virtual_controller() -> Result<Self::VirtualDevice, Box<dyn std::error::Error>> {
-    todo!("[Windows] Integrate virtual gamepad using ViGEmBus driver and the vigem-client crate");
+    let client = Client::connect().unwrap();
+    let target_id = TargetId::XBOX360_WIRED;
+    let mut controller = vigem_client::Xbox360Wired::new(client, target_id);
+    controller.plugin().unwrap();
+    controller.wait_ready().unwrap();
+    Ok(controller)
   }
 
   fn monitor_io(
@@ -62,7 +75,7 @@ impl PlatformControllerOps for WindowsOps {
     _keyboard: Self::PhysicalDevice,
     _controller: Arc<Mutex<dyn VirtualControllerCore>>,
   ) -> ! {
-    let handler = DeviceEventsHandler::new(Duration::from_millis(5))
+    let handler = DeviceEventsHandler::new(Duration::from_millis(1))
       .expect("Failed to create DeviceEventsHandler");
 
     handler.on_key_down(|key: &Keycode| {
@@ -92,6 +105,7 @@ impl PlatformControllerManager for Controller {
 
   fn try_create() -> Result<Self, Box<dyn std::error::Error>> {
     Ok(Self {
+      virtual_device: Arc::new(Mutex::new(WindowsOps::create_virtual_controller().unwrap())),
       left_stick: Arc::new(Mutex::new(JoyStickState::default())),
       right_stick: Arc::new(Mutex::new(JoyStickState::default())),
     })
