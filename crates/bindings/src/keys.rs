@@ -28,10 +28,26 @@ impl Default for JoyStickKeys {
 
 impl JoyStickKeys {
   pub fn key_is_joystick_key(&self, key: Key) -> bool {
+    self.key_is_forward(key)
+      || self.key_is_backward(key)
+      || self.key_is_port(key)
+      || self.key_is_starboard(key)
+  }
+  
+  pub fn key_is_forward(&self, key: Key) -> bool {
     self.forward.contains(&key)
-      || self.backward.contains(&key)
-      || self.port.contains(&key)
-      || self.starboard.contains(&key)
+  }
+
+  pub fn key_is_backward(&self, key: Key) -> bool {
+    self.backward.contains(&key)
+  }
+
+  pub fn key_is_port(&self, key: Key) -> bool {
+    self.port.contains(&key)
+  }
+
+  pub fn key_is_starboard(&self, key: Key) -> bool {
+    self.starboard.contains(&key)
   }
 
   pub fn forward(&self) -> &[Key] {

@@ -101,19 +101,16 @@ impl Gamepad {
     let axis = event.axis();
     let polarity = event.polarity();
 
-    if joystick.eq(&Left) {
-      match axis {
+    match joystick {
+      Left => match axis {
         X => self.handle.thumb_lx = polarity.into(),
         Y => self.handle.thumb_ly = polarity.into(),
-      };
-    }
-
-    if joystick.eq(&Left) {
-      match axis {
+      },
+      Right => match axis {
         X => self.handle.thumb_rx = polarity.into(),
         Y => self.handle.thumb_ry = polarity.into(),
-      };
-    }
+      },
+    };
 
     Ok(())
   }

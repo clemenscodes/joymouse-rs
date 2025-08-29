@@ -2,11 +2,11 @@ mod device;
 
 use crate::windows::device::VirtualDevice;
 
-use bindings::KEYBOARD_BUTTON_MAP;
+use bindings::{JOYSTICK_KEYS, KEYBOARD_BUTTON_MAP};
 use controller::{
-  ButtonEvent, ControllerError, ControllerEvent, ControllerEventEmitter, JoyStickState,
-  PlatformControllerManager, PlatformControllerOps, State, VirtualController,
-  VirtualControllerCore,
+  Axis, ButtonEvent, ControllerError, ControllerEvent, ControllerEventEmitter, JoyStick,
+  JoyStickEvent, JoyStickState, PlatformControllerManager, PlatformControllerOps, Polarity, State,
+  VirtualController, VirtualControllerCore,
 };
 use io::{AlphabeticKey, ArrowKey, FunctionKey, Key, ModifierKey, NumericKey, SystemKey};
 
@@ -75,6 +75,9 @@ impl PlatformControllerOps for WindowsOps {
     _keyboard: Self::PhysicalDevice,
     controller: Arc<Mutex<dyn VirtualControllerCore>>,
   ) -> ! {
+    use Axis::*;
+    use JoyStick::*;
+    use Polarity::*;
     use State::*;
 
     let handler = DeviceEventsHandler::new(Duration::from_millis(10))
@@ -82,29 +85,69 @@ impl PlatformControllerOps for WindowsOps {
 
     let _g_key_down_controller = Arc::clone(&controller);
     let _g_key_down = handler.on_key_down(move |key: &Keycode| {
-      if let Some(button) = &map_key(key) {
-        if let Some(button) = KEYBOARD_BUTTON_MAP.get(button) {
-          let button_event = ButtonEvent::new(*button, Pressed);
-          let controller_event = ControllerEvent::from(button_event);
-          _g_key_down_controller.lock().unwrap().handle_event(controller_event).unwrap();
+      let mut controller = _g_key_down_controller.lock().unwrap();
+      let state = Pressed;
+      if let Some(key) = map_key(key) {
+        if JOYSTICK_KEYS.key_is_joystick_key(key) {
+          let axis_polarity = match key {
+            k if JOYSTICK_KEYS.key_is_forward(k) => Some((Y, Positive(1))),
+            k if JOYSTICK_KEYS.key_is_backward(k) => Some((Y, Negative(1))),
+            k if JOYSTICK_KEYS.key_is_port(k) => Some((X, Negative(1))),
+            k if JOYSTICK_KEYS.key_is_starboard(k) => Some((X, Positive(1))),
+            _ => None,
+          };
+
+          if let Some((axis, polarity)) = axis_polarity {
+            let event = ControllerEvent::from(JoyStickEvent::new(Left, axis, polarity, state));
+            controller.handle_event(event).unwrap();
+          }
+        } else if let Some(&button) = KEYBOARD_BUTTON_MAP.get(&key) {
+          let event = ControllerEvent::from(ButtonEvent::new(button, state));
+          controller.handle_event(event).unwrap();
         }
       }
     });
 
     let _g_key_up_controller = Arc::clone(&controller);
     let _g_key_up = handler.on_key_up(move |key: &Keycode| {
-      if let Some(button) = &map_key(key) {
-        if let Some(button) = KEYBOARD_BUTTON_MAP.get(button) {
-          let button_event = ButtonEvent::new(*button, Released);
+      let mut controller = _g_key_up_controller.lock().unwrap();
+      let state = Released;
+      if let Some(key) = map_key(key) {
+        if JOYSTICK_KEYS.key_is_joystick_key(key) {
+          let axis_polarity = match key {
+            k if JOYSTICK_KEYS.key_is_forward(k) => Some(Y),
+            k if JOYSTICK_KEYS.key_is_backward(k) => Some(Y),
+            k if JOYSTICK_KEYS.key_is_port(k) => Some(X),
+            k if JOYSTICK_KEYS.key_is_starboard(k) => Some(X),
+            _ => None,
+          };
+
+          if let Some(axis) = axis_polarity {
+            let event = ControllerEvent::from(JoyStickEvent::new(Left, axis, Neutral, state));
+            controller.handle_event(event).unwrap();
+          }
+        } else if let Some(button) = KEYBOARD_BUTTON_MAP.get(&key) {
+          let button_event = ButtonEvent::new(*button, state);
           let controller_event = ControllerEvent::from(button_event);
-          _g_key_up_controller.lock().unwrap().handle_event(controller_event).unwrap();
+          controller.handle_event(controller_event).unwrap();
         }
       }
     });
 
-    let _g_mouse_move = handler.on_mouse_move(|_pos: &(i32, i32)| {});
-    let _g_mouse_down = handler.on_mouse_down(|_btn: &MouseButton| {});
-    let _g_mouse_up = handler.on_mouse_up(|_btn: &MouseButton| {});
+    let _g_mouse_move_controller = Arc::clone(&controller);
+    let _g_mouse_move = handler.on_mouse_move(move |_pos: &(i32, i32)| {
+      let _controller = _g_mouse_move_controller.lock().unwrap();
+    });
+
+    let _g_mouse_down_controller = Arc::clone(&controller);
+    let _g_mouse_down = handler.on_mouse_down(move |_btn: &MouseButton| {
+      let _controller = _g_mouse_down_controller.lock().unwrap();
+    });
+
+    let _g_mouse_up_controller = Arc::clone(&controller);
+    let _g_mouse_up = handler.on_mouse_up(move |_btn: &MouseButton| {
+      let _controller = _g_mouse_up_controller.lock().unwrap();
+    });
 
     loop {
       std::thread::sleep(Duration::from_secs(1));
