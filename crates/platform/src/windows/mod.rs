@@ -15,7 +15,7 @@ use std::{
 use device_query::{DeviceEvents, DeviceEventsHandler, Keycode, MouseButton};
 
 pub struct Controller {
-  virtual_device: Arc<Mutex<VirtualDevice>>,
+  virtual_device: Arc<Mutex<<WindowsOps as PlatformControllerOps>::VirtualDevice>>,
   left_stick: Arc<Mutex<JoyStickState>>,
   right_stick: Arc<Mutex<JoyStickState>>,
 }
@@ -23,6 +23,10 @@ pub struct Controller {
 impl ControllerEventEmitter for Controller {
   fn emit(&mut self, events: &[ControllerEvent]) -> Result<(), ControllerError> {
     self.virtual_device.lock().unwrap().emit(events)
+  }
+
+  fn disconnect(&mut self) -> Result<(), ControllerError> {
+    self.virtual_device.lock().unwrap().disconnect()
   }
 }
 
@@ -68,24 +72,14 @@ impl PlatformControllerOps for WindowsOps {
     _keyboard: Self::PhysicalDevice,
     _controller: Arc<Mutex<dyn VirtualControllerCore>>,
   ) -> ! {
-    let handler = DeviceEventsHandler::new(Duration::from_millis(1))
+    let handler = DeviceEventsHandler::new(Duration::from_millis(10))
       .expect("Failed to create DeviceEventsHandler");
 
-    let _g_key_down = handler.on_key_down(|key: &Keycode| {
-      println!("[key down ] {:?}", key);
-    });
-    let _g_key_up = handler.on_key_up(|key: &Keycode| {
-      println!("[key up   ] {:?}", key);
-    });
-    let _g_mouse_move = handler.on_mouse_move(|pos: &(i32, i32)| {
-      println!("[mouse move] x={}, y={}", pos.0, pos.1);
-    });
-    let _g_mouse_down = handler.on_mouse_down(|btn: &MouseButton| {
-      println!("[mouse down] {:?}", btn);
-    });
-    let _g_mouse_up = handler.on_mouse_up(|btn: &MouseButton| {
-      println!("[mouse up  ] {:?}", btn);
-    });
+    let _g_key_down = handler.on_key_down(|_key: &Keycode| {});
+    let _g_key_up = handler.on_key_up(|_key: &Keycode| {});
+    let _g_mouse_move = handler.on_mouse_move(|_pos: &(i32, i32)| {});
+    let _g_mouse_down = handler.on_mouse_down(|_btn: &MouseButton| {});
+    let _g_mouse_up = handler.on_mouse_up(|_btn: &MouseButton| {});
 
     loop {
       std::thread::sleep(Duration::from_secs(1));

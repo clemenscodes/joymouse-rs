@@ -1,39 +1,47 @@
 mod buttons;
+mod gamepad;
 
 use controller::{ControllerError, ControllerEvent, ControllerEventEmitter};
-use vigem_client::{Client, TargetId, XGamepad, Xbox360Wired};
+use vigem_client::{Client, TargetId, XTarget};
 
-use crate::windows::device::buttons::CONTROLLER_BUTTONS;
+use crate::windows::device::gamepad::Gamepad;
 
 #[derive(Debug)]
 pub struct VirtualDevice {
-  handle: Xbox360Wired<Client>,
-}
-
-impl VirtualDevice {
-  pub fn handle_mut(&mut self) -> &mut Xbox360Wired<Client> {
-    &mut self.handle
-  }
+  handle: XTarget,
+  gamepad: Gamepad,
 }
 
 impl Default for VirtualDevice {
   fn default() -> Self {
     let client = Client::connect().unwrap();
     let target_id = TargetId::XBOX360_WIRED;
-    let mut handle = Xbox360Wired::new(client, target_id);
+    let mut handle = XTarget::new(client, target_id);
     handle.plugin().unwrap();
-    handle.wait_ready().unwrap();
     Self {
       handle,
+      gamepad: Gamepad::default(),
     }
   }
 }
 
 impl ControllerEventEmitter for VirtualDevice {
-  fn emit(&mut self, _events: &[ControllerEvent]) -> Result<(), ControllerError> {
-    let mut gamepad = XGamepad::default();
-    gamepad.buttons = CONTROLLER_BUTTONS;
-    self.handle_mut().update(&gamepad).unwrap();
+  fn emit(&mut self, events: &[ControllerEvent]) -> Result<(), ControllerError> {
+    for event in events {
+      self.gamepad.update(event)?;
+
+      if self.handle.wait_ready().is_ok() {
+        if self.handle.update(&self.gamepad.handle()).is_err() {
+          continue;
+        }
+      }
+    }
+
+    Ok(())
+  }
+
+  fn disconnect(&mut self) -> Result<(), ControllerError> {
+    self.handle.unplug().unwrap();
     Ok(())
   }
 }

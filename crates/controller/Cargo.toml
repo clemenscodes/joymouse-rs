@@ -7,4 +7,5 @@ authors.workspace = true
 
 [dependencies]
 serde = { version = "1.0.219", features = ["derive"] }
+ctrlc = "3.4.7"
 settings = { path = "../settings" }

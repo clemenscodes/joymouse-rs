@@ -14,6 +14,7 @@ use std::sync::{Arc, Mutex};
 
 pub trait ControllerEventEmitter: Send + Sync {
   fn emit(&mut self, events: &[ControllerEvent]) -> Result<(), ControllerError>;
+  fn disconnect(&mut self) -> Result<(), ControllerError>;
 }
 
 pub trait VirtualController: ControllerEventEmitter {
@@ -175,11 +176,16 @@ pub trait VirtualController: ControllerEventEmitter {
 
 pub trait VirtualControllerCore: Send + Sync {
   fn handle_event(&mut self, event: ControllerEvent) -> Result<(), ControllerError>;
+  fn disconnect(&mut self) -> Result<(), ControllerError>;
 }
 
 impl<T: VirtualController> VirtualControllerCore for T {
   fn handle_event(&mut self, event: ControllerEvent) -> Result<(), ControllerError> {
     VirtualController::handle_event(self, event)
+  }
+
+  fn disconnect(&mut self) -> Result<(), ControllerError> {
+    self.disconnect()
   }
 }
 
@@ -201,7 +207,16 @@ pub trait PlatformControllerManager: VirtualController + Sized + 'static {
   type Ops: PlatformControllerOps;
 
   fn run() -> Result<(), Box<dyn std::error::Error>> {
+    println!("Starting JoyMouse 🎮🐭");
     let controller = Arc::new(Mutex::new(Self::try_create()?));
+
+    let signal_handler = Arc::clone(&controller);
+    let _ = ctrlc::set_handler(move || {
+      println!("Stopping JoyMouse 🎮🐭");
+      signal_handler.lock().unwrap().disconnect().unwrap();
+      println!("Stopped JoyMouse 🎮🐭");
+      std::process::exit(0);
+    });
 
     let left_stick = Arc::clone(&controller);
     std::thread::spawn(move || Self::monitor_left_stick(left_stick));

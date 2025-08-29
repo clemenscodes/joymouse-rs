@@ -41,6 +41,10 @@ impl ControllerEventEmitter for Controller {
         self.virtual_device.emit(&input_events).unwrap();
         Ok(())
     }
+
+    fn disconnect(&mut self) -> Result<(), ControllerError> {
+      Ok(())
+    }
 }
 
 impl VirtualController for Controller {
