@@ -26,6 +26,16 @@ impl Polarity {
   }
 }
 
+impl From<Polarity> for i16 {
+  fn from(value: Polarity) -> Self {
+    match value {
+      Polarity::Positive(strength) => strength as i16,
+      Polarity::Negative(strength) => strength as i16,
+      Polarity::Neutral => 0,
+    }
+  }
+}
+
 impl From<Polarity> for i32 {
   fn from(value: Polarity) -> Self {
     match value {

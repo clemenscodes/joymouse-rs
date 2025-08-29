@@ -1,4 +1,3 @@
-mod buttons;
 mod gamepad;
 
 use controller::{ControllerError, ControllerEvent, ControllerEventEmitter};
@@ -14,10 +13,27 @@ pub struct VirtualDevice {
 
 impl Default for VirtualDevice {
   fn default() -> Self {
-    let client = Client::connect().unwrap();
+    let client = match Client::connect() {
+      Ok(client) => client,
+      Err(_) => {
+        eprintln!("Failed to connect to ViGEmBus driver. Did you install it?");
+        std::process::exit(1);
+      }
+    };
+
     let target_id = TargetId::XBOX360_WIRED;
     let mut handle = XTarget::new(client, target_id);
-    handle.plugin().unwrap();
+
+    if handle.plugin().is_err() {
+      eprintln!("Failed to plugin virtual controller");
+      std::process::exit(1);
+    }
+
+    if handle.wait_ready().is_err() {
+      eprintln!("Failed to wait for virtual controller");
+      std::process::exit(1);
+    }
+
     Self {
       handle,
       gamepad: Gamepad::default(),
@@ -30,10 +46,8 @@ impl ControllerEventEmitter for VirtualDevice {
     for event in events {
       self.gamepad.update(event)?;
 
-      if self.handle.wait_ready().is_ok() {
-        if self.handle.update(&self.gamepad.handle()).is_err() {
-          continue;
-        }
+      if self.handle.update(&self.gamepad.handle()).is_err() {
+        continue;
       }
     }
 
@@ -41,7 +55,11 @@ impl ControllerEventEmitter for VirtualDevice {
   }
 
   fn disconnect(&mut self) -> Result<(), ControllerError> {
-    self.handle.unplug().unwrap();
+    if self.handle.unplug().is_err() {
+      eprintln!("Failed to disconnect virtual controller");
+      std::process::exit(1);
+    }
+
     Ok(())
   }
 }
