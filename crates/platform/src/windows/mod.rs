@@ -17,6 +17,26 @@ use std::{
 
 use device_query::{DeviceEvents, DeviceEventsHandler, Keycode, MouseButton};
 
+use windows::{
+  core::PCWSTR,
+  Win32::{
+    Devices::HumanInterfaceDevice::{HID_USAGE_GENERIC_MOUSE, HID_USAGE_PAGE_GENERIC},
+    Foundation::{HWND, LPARAM, LRESULT, WPARAM},
+    System::LibraryLoader::GetModuleHandleW,
+    UI::{
+      Input::{
+        GetRawInputData, RegisterRawInputDevices, HRAWINPUT, MOUSE_MOVE_ABSOLUTE, RAWINPUT,
+        RAWINPUTDEVICE, RAWINPUTHEADER, RIDEV_INPUTSINK, RID_INPUT, RIM_TYPEMOUSE,
+      },
+      WindowsAndMessaging::{
+        CreateWindowExW, DefWindowProcW, DispatchMessageW, GetMessageW, RegisterClassW,
+        TranslateMessage, CS_HREDRAW, CS_VREDRAW, CW_USEDEFAULT, HWND_MESSAGE, MSG, WM_INPUT,
+        WNDCLASSW, WS_OVERLAPPEDWINDOW,
+      },
+    },
+  },
+};
+
 pub struct Controller {
   virtual_device: <WindowsOps as PlatformControllerOps>::VirtualDevice,
   left_stick: Arc<Mutex<JoyStickState>>,
@@ -162,13 +182,54 @@ impl PlatformControllerOps for WindowsOps {
       }
     });
 
-    let _g_mouse_move_controller = Arc::clone(&controller);
-    let _g_mouse_move = handler.on_mouse_move(move |_pos: &(i32, i32)| {
-      let _controller = _g_mouse_move_controller.lock().unwrap();
-    });
+    unsafe {
+      let class_name: Vec<u16> = "RawMouseWin".encode_utf16().chain([0]).collect();
 
-    loop {
-      std::thread::sleep(Duration::from_secs(1));
+      let hinstance = GetModuleHandleW(None).expect("GetModuleHandleW failed");
+
+      let wc = WNDCLASSW {
+        style: CS_HREDRAW | CS_VREDRAW,
+        lpfnWndProc: Some(wndproc),
+        hInstance: hinstance.into(),
+        lpszClassName: PCWSTR(class_name.as_ptr()),
+        ..Default::default()
+      };
+
+      RegisterClassW(&wc);
+
+      let hwnd = CreateWindowExW(
+        Default::default(),
+        PCWSTR(class_name.as_ptr()),
+        PCWSTR(class_name.as_ptr()),
+        WS_OVERLAPPEDWINDOW,
+        CW_USEDEFAULT,
+        CW_USEDEFAULT,
+        CW_USEDEFAULT,
+        CW_USEDEFAULT,
+        Some(HWND_MESSAGE),
+        None,
+        Some(hinstance.into()),
+        None,
+      )
+      .expect("CreateWindowExW failed");
+
+      let rid = RAWINPUTDEVICE {
+        usUsagePage: HID_USAGE_PAGE_GENERIC,
+        usUsage: HID_USAGE_GENERIC_MOUSE,
+        dwFlags: RIDEV_INPUTSINK,
+        hwndTarget: hwnd,
+      };
+
+      RegisterRawInputDevices(&[rid], size_of::<RAWINPUTDEVICE>() as u32)
+        .expect("RegisterRawInputDevices failed");
+
+      let mut msg = MSG::default();
+      loop {
+        while GetMessageW(&mut msg, None, 0, 0).into() {
+          let _ = TranslateMessage(&msg);
+          DispatchMessageW(&msg);
+        }
+      }
     }
   }
 }
@@ -273,4 +334,27 @@ impl PlatformControllerManager for Controller {
       right_stick: Arc::new(Mutex::new(JoyStickState::default())),
     })
   }
+}
+
+unsafe extern "system" fn wndproc(hwnd: HWND, msg: u32, wparam: WPARAM, lparam: LPARAM) -> LRESULT {
+  if msg == WM_INPUT {
+    let hraw = HRAWINPUT(lparam.0 as _);
+    let mut size: u32 = 0;
+    let header_size = std::mem::size_of::<RAWINPUTHEADER>() as u32;
+    GetRawInputData(hraw, RID_INPUT, None, &mut size, header_size);
+
+    let mut buf = vec![0u8; size as usize];
+    if GetRawInputData(hraw, RID_INPUT, Some(buf.as_mut_ptr() as *mut _), &mut size, header_size)
+      != u32::MAX
+    {
+      let raw = &*(buf.as_ptr() as *const RAWINPUT);
+      if raw.header.dwType == RIM_TYPEMOUSE.0 {
+        let m = unsafe { raw.data.mouse };
+        if (m.usFlags.0 & MOUSE_MOVE_ABSOLUTE.0) == 0 {
+          println!("dx={} dy={}", m.lLastX, m.lLastY);
+        }
+      }
+    }
+  }
+  DefWindowProcW(hwnd, msg, wparam, lparam)
 }
