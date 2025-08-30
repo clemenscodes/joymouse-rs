@@ -33,7 +33,7 @@ impl JoyStickKeys {
       || self.key_is_port(key)
       || self.key_is_starboard(key)
   }
-  
+
   pub fn key_is_forward(&self, key: Key) -> bool {
     self.forward.contains(&key)
   }
