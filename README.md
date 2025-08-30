@@ -15,7 +15,7 @@ or camera-driven games where mouse precision is key.
 - 🖱️ **Mouse → Right Analog Stick** mapping
 - 🎮 **Virtual Controller Emulation**
   - **Linux:** Uses `evdev` for input parsing and `uinput` to create a virtual controller
-  - **Windows:** Uses `device query` for input and [`ViGEmClient`](https://github.com/ViGEm/ViGEmClient) + [ViGEmBus](https://github.com/ViGEm/ViGEmBus) for virtual gamepad creation _(WIP)_
+  - **Windows:** Uses `device query` for input and [`ViGEmClient`](https://github.com/ViGEm/ViGEmClient) + [ViGEmBus](https://github.com/ViGEm/ViGEmBus) for virtual gamepad creation
 - ⚙️ **Customizable Settings**
 - 🧭 Auto recenter analog stick after idle
 - 🐧 **Linux support** (fully functional)
@@ -32,7 +32,7 @@ or camera-driven games where mouse precision is key.
   - Creates a virtual device via [`uinput`](https://www.kernel.org/doc/html/latest/input/uinput.html)
   - Emits events as if from a real controller
 
-- **Windows:** _(Work in Progress)_
+- **Windows:**
   - Parses events using device APIs
   - Emulates a virtual controller using [`ViGEmClient`](https://github.com/ViGEm/ViGEmClient)
     and [`ViGEmBus`](https://github.com/ViGEm/ViGEmBus)
@@ -91,9 +91,14 @@ The latest releases can be downloaded from the [Downloads section](https://githu
 
 For Windows, you can directly download the binary here:  
 [joymouse.exe](https://github.com/clemenscodes/joymouse-rs/releases/download/latest/joymouse.exe)
+To create the virtual controller, installing the ViGEmBus Driver is required. You can download the driver [here](https://github.com/nefarius/ViGEmBus/releases/download/v1.22.0/ViGEmBus_1.22.0_x64_x86_arm64.exe).
+Just double click the executable file. It should open a window that says that JoyMouse started.
 
 For Linux, you can directly download the binary here:  
 [joymouse](https://github.com/clemenscodes/joymouse-rs/releases/download/latest/joymouse-musl-static)
+For a seemless experience, it is recommended to add your user to the `input` group. This allows reading `/dev/input` without needing `sudo` and thus running the binary without `sudo`.
+To add your user to the `input` group, run the following command `sudo usermod -a -G input $USER`.
+Then simply run the downloaded binary in the terminal.
 
 ### 🛠️ Build Instructions
 
