@@ -8,7 +8,7 @@ use controller::{
   JoyStickEvent, JoyStickState, PlatformControllerManager, PlatformControllerOps, Polarity, State,
   VirtualController, VirtualControllerCore,
 };
-use io::{AlphabeticKey, ArrowKey, FunctionKey, Key, ModifierKey, NumericKey, SystemKey};
+use io::{AlphabeticKey, ArrowKey, FunctionKey, Key, ModifierKey, MouseKey, NumericKey, SystemKey};
 
 use std::{
   sync::{Arc, Mutex},
@@ -136,25 +136,55 @@ impl PlatformControllerOps for WindowsOps {
       }
     });
 
-    let _g_mouse_move_controller = Arc::clone(&controller);
-    let _g_mouse_move = handler.on_mouse_move(move |_pos: &(i32, i32)| {
-      let _controller = _g_mouse_move_controller.lock().unwrap();
-    });
-
     let _g_mouse_down_controller = Arc::clone(&controller);
-    let _g_mouse_down = handler.on_mouse_down(move |_btn: &MouseButton| {
-      let _controller = _g_mouse_down_controller.lock().unwrap();
+    let _g_mouse_down = handler.on_mouse_down(move |btn: &MouseButton| {
+      let mut controller = _g_mouse_down_controller.lock().unwrap();
+      let state = Pressed;
+      if let Some(key) = map_mouse_button(btn) {
+        if let Some(button) = KEYBOARD_BUTTON_MAP.get(&key) {
+          let button_event = ButtonEvent::new(*button, state);
+          let controller_event = ControllerEvent::from(button_event);
+          controller.handle_event(controller_event).unwrap();
+        }
+      }
     });
 
     let _g_mouse_up_controller = Arc::clone(&controller);
-    let _g_mouse_up = handler.on_mouse_up(move |_btn: &MouseButton| {
-      let _controller = _g_mouse_up_controller.lock().unwrap();
+    let _g_mouse_up = handler.on_mouse_up(move |btn: &MouseButton| {
+      let mut controller = _g_mouse_up_controller.lock().unwrap();
+      let state = Released;
+      if let Some(key) = map_mouse_button(btn) {
+        if let Some(button) = KEYBOARD_BUTTON_MAP.get(&key) {
+          let button_event = ButtonEvent::new(*button, state);
+          let controller_event = ControllerEvent::from(button_event);
+          controller.handle_event(controller_event).unwrap();
+        }
+      }
+    });
+
+    let _g_mouse_move_controller = Arc::clone(&controller);
+    let _g_mouse_move = handler.on_mouse_move(move |_pos: &(i32, i32)| {
+      let _controller = _g_mouse_move_controller.lock().unwrap();
     });
 
     loop {
       std::thread::sleep(Duration::from_secs(1));
     }
   }
+}
+
+fn map_mouse_button(button: &MouseButton) -> Option<Key> {
+  use Key::*;
+  use MouseKey::*;
+
+  Some(match button {
+    1 => Mouse(Left),
+    2 => Mouse(Right),
+    3 => Mouse(Middle),
+    4 => Mouse(Side),
+    5 => Mouse(Extra),
+    _ => return None,
+  })
 }
 
 fn map_key(key: &Keycode) -> Option<Key> {
