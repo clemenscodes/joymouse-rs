@@ -190,45 +190,20 @@ pub trait VirtualController: ControllerEventEmitter {
   }
 
   fn center_right_stick(&mut self) -> Result<(), ControllerError> {
-    let is_centered = { self.right_stick().lock().unwrap().is_centered() };
-    if !is_centered {
-      self.right_stick().lock().unwrap().recenter();
-      self.emit(&[
-        ControllerEvent::from(JoyStickEvent::new(
-          JoyStick::Right,
-          Axis::X,
-          Polarity::Neutral,
-          State::Released,
-        )),
-        ControllerEvent::from(JoyStickEvent::new(
-          JoyStick::Right,
-          Axis::Y,
-          Polarity::Neutral,
-          State::Released,
-        )),
-      ])?;
-    }
-    Ok(())
-  }
-
-  fn handle_left_stick(&mut self) -> Result<(), ControllerError> {
-    let maybe_direction = { self.left_stick_mut().lock().unwrap().direction() };
-    if let Some(direction) = maybe_direction {
-      let vector = Vector::from(direction) * settings::LEFT_STICK_SENSITIVITY;
-      let vector = { self.left_stick_mut().lock().unwrap().tilt(vector) };
-      self.move_left_stick(vector, Some(direction))
-    } else {
-      self.center_left_stick()
-    }
-  }
-
-  fn handle_right_stick(&mut self) -> Result<(), ControllerError> {
-    let left_stick_direction = self.left_stick().lock().unwrap().direction();
-    if self.right_stick().lock().unwrap().handle_idle(left_stick_direction) {
-      self.center_right_stick()
-    } else {
-      Ok(())
-    }
+    self.emit(&[
+      ControllerEvent::from(JoyStickEvent::new(
+        JoyStick::Right,
+        Axis::X,
+        Polarity::Neutral,
+        State::Released,
+      )),
+      ControllerEvent::from(JoyStickEvent::new(
+        JoyStick::Right,
+        Axis::Y,
+        Polarity::Neutral,
+        State::Released,
+      )),
+    ])
   }
 
   fn monitor_left_stick(controller: Arc<Mutex<Self>>) -> !
@@ -248,6 +223,26 @@ pub trait VirtualController: ControllerEventEmitter {
     loop {
       controller.lock().unwrap().handle_right_stick().unwrap();
       std::thread::sleep(SETTINGS.tickrate());
+    }
+  }
+
+  fn handle_left_stick(&mut self) -> Result<(), ControllerError> {
+    let maybe_direction = { self.left_stick_mut().lock().unwrap().direction() };
+    if let Some(direction) = maybe_direction {
+      let vector = Vector::from(direction) * settings::LEFT_STICK_SENSITIVITY;
+      let vector = { self.left_stick_mut().lock().unwrap().tilt(vector) };
+      self.move_left_stick(vector, Some(direction))
+    } else {
+      self.center_left_stick()
+    }
+  }
+
+  fn handle_right_stick(&mut self) -> Result<(), ControllerError> {
+    let left_stick_direction = self.left_stick().lock().unwrap().direction();
+    if self.right_stick().lock().unwrap().handle_idle(left_stick_direction) {
+      self.center_right_stick()
+    } else {
+      Ok(())
     }
   }
 
