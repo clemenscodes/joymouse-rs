@@ -12,9 +12,70 @@ use settings::SETTINGS;
 
 use std::sync::{Arc, Mutex};
 
-pub trait ControllerEventEmitter: Send + Sync {
-  fn emit(&mut self, events: &[ControllerEvent]) -> Result<(), ControllerError>;
+pub trait PlatformControllerManager: VirtualController + Sized + 'static {
+  type Ops: PlatformControllerOps;
+
+  fn run() -> Result<(), Box<dyn std::error::Error>> {
+    println!("Starting JoyMouse 🎮🐭");
+    let controller = Arc::new(Mutex::new(Self::try_create()?));
+
+    let signal_handler = Arc::clone(&controller);
+    let _ = ctrlc::set_handler(move || {
+      println!("Stopping JoyMouse 🎮🐭");
+      signal_handler.lock().unwrap().disconnect().unwrap();
+      println!("Stopped JoyMouse 🎮🐭");
+      std::process::exit(0);
+    });
+
+    let io_controller = Arc::clone(&controller);
+    let io = std::thread::spawn(move || {
+      let mouse = Self::Ops::init_mouse();
+      let keyboard = Self::Ops::init_keyboard();
+      Self::Ops::monitor_io(mouse, keyboard, io_controller);
+    });
+
+    let left_stick = Arc::clone(&controller);
+    std::thread::spawn(move || Self::monitor_left_stick(left_stick));
+
+    let right_stick = Arc::clone(&controller);
+    std::thread::spawn(move || Self::monitor_right_stick(right_stick));
+
+    println!("Started JoyMouse 🎮🐭");
+
+    io.join().unwrap();
+    Ok(())
+  }
+
+  fn try_create() -> Result<Self, Box<dyn std::error::Error>>;
+}
+
+pub trait PlatformControllerOps {
+  type VirtualDevice;
+  type PhysicalDevice;
+
+  fn create_virtual_controller() -> Result<Self::VirtualDevice, Box<dyn std::error::Error>>;
+  fn init_mouse() -> Self::PhysicalDevice;
+  fn init_keyboard() -> Self::PhysicalDevice;
+  fn monitor_io(
+    mouse: Self::PhysicalDevice,
+    keyboard: Self::PhysicalDevice,
+    controller: Arc<Mutex<dyn VirtualControllerCore>>,
+  ) -> !;
+}
+
+pub trait VirtualControllerCore: Send + Sync {
+  fn handle_event(&mut self, event: ControllerEvent) -> Result<(), ControllerError>;
   fn disconnect(&mut self) -> Result<(), ControllerError>;
+}
+
+impl<T: VirtualController> VirtualControllerCore for T {
+  fn handle_event(&mut self, event: ControllerEvent) -> Result<(), ControllerError> {
+    VirtualController::handle_event(self, event)
+  }
+
+  fn disconnect(&mut self) -> Result<(), ControllerError> {
+    self.disconnect()
+  }
 }
 
 pub trait VirtualController: ControllerEventEmitter {
@@ -47,17 +108,14 @@ pub trait VirtualController: ControllerEventEmitter {
       self.update_left_stick_direction(axis, &polarity, &state);
     }
 
-    let direction = self.left_stick().lock().unwrap().direction();
+    let direction = { self.left_stick().lock().unwrap().direction() };
     let vector = Vector::from((axis, polarity, joystick, direction));
 
     if *joystick == JoyStick::Right {
-      let vector = self.right_stick().lock().unwrap().micro(vector);
+      let vector = { self.right_stick().lock().unwrap().micro(vector) };
       self.move_right_stick(vector)
     } else {
-      let vector = {
-        let mut stick = self.left_stick().lock().unwrap();
-        stick.tilt(vector)
-      };
+      let vector = { self.left_stick().lock().unwrap().tilt(vector) };
       self.move_left_stick(vector, None)
     }
   }
@@ -110,27 +168,54 @@ pub trait VirtualController: ControllerEventEmitter {
   }
 
   fn center_left_stick(&mut self) -> Result<(), ControllerError> {
-    self.move_left_stick(Vector::default(), None)
+    let is_centered = { self.left_stick().lock().unwrap().is_centered() };
+    if !is_centered {
+      self.left_stick().lock().unwrap().recenter();
+      self.emit(&[
+        ControllerEvent::from(JoyStickEvent::new(
+          JoyStick::Left,
+          Axis::X,
+          Polarity::Neutral,
+          State::Released,
+        )),
+        ControllerEvent::from(JoyStickEvent::new(
+          JoyStick::Left,
+          Axis::Y,
+          Polarity::Neutral,
+          State::Released,
+        )),
+      ])?;
+    }
+    Ok(())
   }
 
   fn center_right_stick(&mut self) -> Result<(), ControllerError> {
-    self.move_right_stick(Vector::default())
+    let is_centered = { self.right_stick().lock().unwrap().is_centered() };
+    if !is_centered {
+      self.right_stick().lock().unwrap().recenter();
+      self.emit(&[
+        ControllerEvent::from(JoyStickEvent::new(
+          JoyStick::Right,
+          Axis::X,
+          Polarity::Neutral,
+          State::Released,
+        )),
+        ControllerEvent::from(JoyStickEvent::new(
+          JoyStick::Right,
+          Axis::Y,
+          Polarity::Neutral,
+          State::Released,
+        )),
+      ])?;
+    }
+    Ok(())
   }
 
   fn handle_left_stick(&mut self) -> Result<(), ControllerError> {
-    let maybe_direction = {
-      let stick = self.left_stick_mut();
-      stick.lock().unwrap().direction()
-    };
-
+    let maybe_direction = { self.left_stick_mut().lock().unwrap().direction() };
     if let Some(direction) = maybe_direction {
       let vector = Vector::from(direction) * settings::LEFT_STICK_SENSITIVITY;
-
-      let vector = {
-        let mut stick = self.left_stick_mut().lock().unwrap();
-        stick.tilt(vector)
-      };
-
+      let vector = { self.left_stick_mut().lock().unwrap().tilt(vector) };
       self.move_left_stick(vector, Some(direction))
     } else {
       self.center_left_stick()
@@ -174,67 +259,7 @@ pub trait VirtualController: ControllerEventEmitter {
   }
 }
 
-pub trait VirtualControllerCore: Send + Sync {
-  fn handle_event(&mut self, event: ControllerEvent) -> Result<(), ControllerError>;
+pub trait ControllerEventEmitter: Send + Sync {
+  fn emit(&mut self, events: &[ControllerEvent]) -> Result<(), ControllerError>;
   fn disconnect(&mut self) -> Result<(), ControllerError>;
-}
-
-impl<T: VirtualController> VirtualControllerCore for T {
-  fn handle_event(&mut self, event: ControllerEvent) -> Result<(), ControllerError> {
-    VirtualController::handle_event(self, event)
-  }
-
-  fn disconnect(&mut self) -> Result<(), ControllerError> {
-    self.disconnect()
-  }
-}
-
-pub trait PlatformControllerOps {
-  type VirtualDevice;
-  type PhysicalDevice;
-
-  fn create_virtual_controller() -> Result<Self::VirtualDevice, Box<dyn std::error::Error>>;
-  fn init_mouse() -> Self::PhysicalDevice;
-  fn init_keyboard() -> Self::PhysicalDevice;
-  fn monitor_io(
-    mouse: Self::PhysicalDevice,
-    keyboard: Self::PhysicalDevice,
-    controller: Arc<Mutex<dyn VirtualControllerCore>>,
-  ) -> !;
-}
-
-pub trait PlatformControllerManager: VirtualController + Sized + 'static {
-  type Ops: PlatformControllerOps;
-
-  fn run() -> Result<(), Box<dyn std::error::Error>> {
-    println!("Starting JoyMouse 🎮🐭");
-    let controller = Arc::new(Mutex::new(Self::try_create()?));
-
-    let signal_handler = Arc::clone(&controller);
-    let _ = ctrlc::set_handler(move || {
-      println!("Stopping JoyMouse 🎮🐭");
-      signal_handler.lock().unwrap().disconnect().unwrap();
-      println!("Stopped JoyMouse 🎮🐭");
-      std::process::exit(0);
-    });
-
-    let left_stick = Arc::clone(&controller);
-    std::thread::spawn(move || Self::monitor_left_stick(left_stick));
-
-    let right_stick = Arc::clone(&controller);
-    std::thread::spawn(move || Self::monitor_right_stick(right_stick));
-
-    let io = std::thread::spawn(move || {
-      let mouse = Self::Ops::init_mouse();
-      let keyboard = Self::Ops::init_keyboard();
-      Self::Ops::monitor_io(mouse, keyboard, controller);
-    });
-
-    println!("Started JoyMouse 🎮🐭");
-
-    io.join().unwrap();
-    Ok(())
-  }
-
-  fn try_create() -> Result<Self, Box<dyn std::error::Error>>;
 }

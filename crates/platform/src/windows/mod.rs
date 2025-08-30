@@ -25,7 +25,9 @@ pub struct Controller {
 
 impl ControllerEventEmitter for Controller {
   fn emit(&mut self, events: &[ControllerEvent]) -> Result<(), ControllerError> {
-    self.virtual_device.emit(events)
+    let left_stick = { self.left_stick.lock().unwrap().clone() };
+    let right_stick = { self.right_stick.lock().unwrap().clone() };
+    self.virtual_device.emit(events, &left_stick, &right_stick)
   }
 
   fn disconnect(&mut self) -> Result<(), ControllerError> {
@@ -115,15 +117,15 @@ impl PlatformControllerOps for WindowsOps {
       if let Some(key) = map_key(key) {
         if JOYSTICK_KEYS.key_is_joystick_key(key) {
           let axis_polarity = match key {
-            k if JOYSTICK_KEYS.key_is_forward(k) => Some(Y),
-            k if JOYSTICK_KEYS.key_is_backward(k) => Some(Y),
-            k if JOYSTICK_KEYS.key_is_port(k) => Some(X),
-            k if JOYSTICK_KEYS.key_is_starboard(k) => Some(X),
+            k if JOYSTICK_KEYS.key_is_forward(k) => Some((Y, Positive(1))),
+            k if JOYSTICK_KEYS.key_is_backward(k) => Some((Y, Negative(1))),
+            k if JOYSTICK_KEYS.key_is_port(k) => Some((X, Negative(1))),
+            k if JOYSTICK_KEYS.key_is_starboard(k) => Some((X, Positive(1))),
             _ => None,
           };
 
-          if let Some(axis) = axis_polarity {
-            let event = ControllerEvent::from(JoyStickEvent::new(Left, axis, Neutral, state));
+          if let Some((axis, polarity)) = axis_polarity {
+            let event = ControllerEvent::from(JoyStickEvent::new(Left, axis, polarity, state));
             controller.handle_event(event).unwrap();
           }
         } else if let Some(button) = KEYBOARD_BUTTON_MAP.get(&key) {

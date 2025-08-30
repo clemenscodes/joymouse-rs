@@ -7,7 +7,7 @@ use crate::{
 
 use settings::{LEFT_STICK_SENSITIVITY, MAX_STICK_TILT, SETTINGS};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct JoyStickState {
   x: f64,
   y: f64,
@@ -99,6 +99,11 @@ impl JoyStickState {
   }
 
   pub fn recenter(&mut self) {
+    self.x = 0.0;
+    self.y = 0.0;
+  }
+
+  pub fn reset(&mut self) {
     *self = Self::default();
   }
 
@@ -142,7 +147,7 @@ impl JoyStickState {
 
   pub fn handle_idle(&mut self, left_stick_direction: Option<Direction>) -> bool {
     if self.is_idle(left_stick_direction) {
-      self.recenter();
+      self.reset();
       return true;
     }
     false
