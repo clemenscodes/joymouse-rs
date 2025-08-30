@@ -135,11 +135,6 @@
               cargoClippyExtraArgs = "--all-targets -- --deny warnings";
             });
 
-          toml-fmt = craneLib.taploFmt {
-            src = pkgs.lib.sources.sourceFilesBySuffices src [".toml"];
-            taploExtraArgs = "--config ./taplo.toml";
-          };
-
           nextest = craneLib.cargoNextest (args
             // {
               inherit cargoArtifacts;
