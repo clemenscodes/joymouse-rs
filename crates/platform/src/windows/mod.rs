@@ -11,7 +11,7 @@ use controller::{
 use io::{AlphabeticKey, ArrowKey, FunctionKey, Key, ModifierKey, MouseKey, NumericKey, SystemKey};
 
 use std::{
-  sync::{Arc, Mutex},
+  sync::{mpsc::Sender, Arc, Mutex, OnceLock},
   time::Duration,
 };
 
@@ -36,6 +36,8 @@ use windows::{
     },
   },
 };
+
+static MOUSE_DELTA_TX: OnceLock<Sender<(i32, i32)>> = OnceLock::new();
 
 pub struct Controller {
   virtual_device: <WindowsOps as PlatformControllerOps>::VirtualDevice,
@@ -177,6 +179,42 @@ impl PlatformControllerOps for WindowsOps {
         if let Some(button) = KEYBOARD_BUTTON_MAP.get(&key) {
           let button_event = ButtonEvent::new(*button, state);
           let controller_event = ControllerEvent::from(button_event);
+          controller.handle_event(controller_event).unwrap();
+        }
+      }
+    });
+
+    let _g_mouse_move_controller = Arc::clone(&controller);
+    let (tx, rx) = std::sync::mpsc::channel::<(i32, i32)>();
+    MOUSE_DELTA_TX.set(tx).unwrap();
+
+    std::thread::spawn(move || {
+      while let Ok((dx, dy)) = rx.recv() {
+        let mut controller = _g_mouse_move_controller.lock().unwrap();
+        let joystick = JoyStick::Right;
+        let state = State::Pressed;
+
+        if dx != 0 {
+          let polarity = if dx > 0 {
+            Polarity::Positive(dx.abs())
+          } else {
+            Polarity::Negative(dx.abs())
+          };
+          let axis = Axis::X;
+          let joystick_event = JoyStickEvent::new(joystick, axis, polarity, state);
+          let controller_event = ControllerEvent::from(joystick_event);
+          controller.handle_event(controller_event).unwrap();
+        }
+
+        if dy != 0 {
+          let polarity = if dy > 0 {
+            Polarity::Negative(dy.abs())
+          } else {
+            Polarity::Positive(dy.abs())
+          };
+          let axis = Axis::Y;
+          let joystick_event = JoyStickEvent::new(joystick, axis, polarity, state);
+          let controller_event = ControllerEvent::from(joystick_event);
           controller.handle_event(controller_event).unwrap();
         }
       }
@@ -351,7 +389,11 @@ unsafe extern "system" fn wndproc(hwnd: HWND, msg: u32, wparam: WPARAM, lparam: 
       if raw.header.dwType == RIM_TYPEMOUSE.0 {
         let m = unsafe { raw.data.mouse };
         if (m.usFlags.0 & MOUSE_MOVE_ABSOLUTE.0) == 0 {
-          println!("dx={} dy={}", m.lLastX, m.lLastY);
+          let dx = m.lLastX;
+          let dy = m.lLastY;
+          if let Some(tx) = MOUSE_DELTA_TX.get() {
+            let _ = tx.send((dx, dy));
+          }
         }
       }
     }

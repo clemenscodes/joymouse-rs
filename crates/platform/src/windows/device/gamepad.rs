@@ -106,13 +106,9 @@ impl Gamepad {
     use Axis::*;
     use JoyStick::*;
 
-    println!("------------------------------------------");
-    println!("Handling joystick event {:#?} {:#?}", event, left_stick.direction());
-    println!("------------------------------------------");
-
     let joystick = event.joystick();
     let axis = event.axis();
-    
+
     match joystick {
       Left => match axis {
         X => self.handle.thumb_lx = left_stick.vector().dx() as i16,

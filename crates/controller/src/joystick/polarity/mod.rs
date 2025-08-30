@@ -40,7 +40,7 @@ impl From<Polarity> for i32 {
   fn from(value: Polarity) -> Self {
     match value {
       Polarity::Positive(strength) => strength,
-      Polarity::Negative(strength) => strength,
+      Polarity::Negative(strength) => -strength,
       Polarity::Neutral => 0,
     }
   }
