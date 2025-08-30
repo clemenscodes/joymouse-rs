@@ -1,6 +1,6 @@
 use controller::{
   Axis, ButtonEvent, ControllerButton, ControllerError, ControllerEvent, JoyStick, JoyStickEvent,
-  State,
+  JoyStickState, State,
 };
 use vigem_client::{XButtons, XGamepad};
 
@@ -22,11 +22,16 @@ impl Gamepad {
     self.handle
   }
 
-  pub fn update(&mut self, event: &ControllerEvent) -> Result<(), ControllerError> {
+  pub fn update(
+    &mut self,
+    event: &ControllerEvent,
+    left_stick: &JoyStickState,
+    right_stick: &JoyStickState,
+  ) -> Result<(), ControllerError> {
     use ControllerEvent::*;
     match event {
       Button(event) => self.handle_button_event(event),
-      JoyStick(event) => self.handle_joystick_event(event),
+      JoyStick(event) => self.handle_joystick_event(event, left_stick, right_stick),
     }
   }
 
@@ -89,26 +94,33 @@ impl Gamepad {
       }
     };
 
-    println!("Updated gamepad: {:#?}", self.handle);
     Ok(())
   }
 
-  fn handle_joystick_event(&mut self, event: &JoyStickEvent) -> Result<(), ControllerError> {
+  fn handle_joystick_event(
+    &mut self,
+    event: &JoyStickEvent,
+    left_stick: &JoyStickState,
+    right_stick: &JoyStickState,
+  ) -> Result<(), ControllerError> {
     use Axis::*;
     use JoyStick::*;
 
+    println!("------------------------------------------");
+    println!("Handling joystick event {:#?} {:#?}", event, left_stick.direction());
+    println!("------------------------------------------");
+
     let joystick = event.joystick();
     let axis = event.axis();
-    let polarity = event.polarity();
-
+    
     match joystick {
       Left => match axis {
-        X => self.handle.thumb_lx = polarity.into(),
-        Y => self.handle.thumb_ly = polarity.into(),
+        X => self.handle.thumb_lx = left_stick.vector().dx() as i16,
+        Y => self.handle.thumb_ly = left_stick.vector().dy() as i16,
       },
       Right => match axis {
-        X => self.handle.thumb_rx = polarity.into(),
-        Y => self.handle.thumb_ry = polarity.into(),
+        X => self.handle.thumb_rx = right_stick.vector().dx() as i16,
+        Y => self.handle.thumb_ry = right_stick.vector().dy() as i16,
       },
     };
 

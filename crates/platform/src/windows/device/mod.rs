@@ -1,6 +1,6 @@
 mod gamepad;
 
-use controller::{ControllerError, ControllerEvent, ControllerEventEmitter};
+use controller::{ControllerError, ControllerEvent, JoyStickState};
 use vigem_client::{Client, TargetId, XTarget};
 
 use crate::windows::device::gamepad::Gamepad;
@@ -41,10 +41,15 @@ impl Default for VirtualDevice {
   }
 }
 
-impl ControllerEventEmitter for VirtualDevice {
-  fn emit(&mut self, events: &[ControllerEvent]) -> Result<(), ControllerError> {
+impl VirtualDevice {
+  pub fn emit(
+    &mut self,
+    events: &[ControllerEvent],
+    left_stick: &JoyStickState,
+    right_stick: &JoyStickState,
+  ) -> Result<(), ControllerError> {
     for event in events {
-      self.gamepad.update(event)?;
+      self.gamepad.update(event, left_stick, right_stick)?;
 
       if self.handle.update(&self.gamepad.handle()).is_err() {
         continue;
@@ -54,7 +59,7 @@ impl ControllerEventEmitter for VirtualDevice {
     Ok(())
   }
 
-  fn disconnect(&mut self) -> Result<(), ControllerError> {
+  pub fn disconnect(&mut self) -> Result<(), ControllerError> {
     if self.handle.unplug().is_err() {
       eprintln!("Failed to disconnect virtual controller");
       std::process::exit(1);
