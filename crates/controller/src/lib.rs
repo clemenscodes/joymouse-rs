@@ -15,7 +15,7 @@ use std::sync::{Arc, Mutex};
 pub trait PlatformControllerManager: VirtualController + Sized + 'static {
   type Ops: PlatformControllerOps;
 
-  fn run() -> Result<(), Box<dyn std::error::Error>> {
+  fn run() -> Result<(), ControllerError> {
     println!("Starting JoyMouse 🎮🐭");
     let controller = Arc::new(Mutex::new(Self::try_create()?));
 
@@ -46,14 +46,14 @@ pub trait PlatformControllerManager: VirtualController + Sized + 'static {
     Ok(())
   }
 
-  fn try_create() -> Result<Self, Box<dyn std::error::Error>>;
+  fn try_create() -> Result<Self, ControllerError>;
 }
 
 pub trait PlatformControllerOps {
   type VirtualDevice;
   type PhysicalDevice;
 
-  fn create_virtual_controller() -> Result<Self::VirtualDevice, Box<dyn std::error::Error>>;
+  fn create_virtual_controller() -> Result<Self::VirtualDevice, ControllerError>;
   fn init_mouse() -> Self::PhysicalDevice;
   fn init_keyboard() -> Self::PhysicalDevice;
   fn monitor_io(

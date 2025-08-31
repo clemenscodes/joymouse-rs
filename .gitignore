@@ -1,8 +1,5 @@
 **/target
+**/dist
 .direnv
 result
 **_logs
-warcraft_api.json
-observer_api.json
-observer_config.json
-libvkhook.so

@@ -89,7 +89,7 @@ impl PlatformControllerOps for WindowsOps {
     ()
   }
 
-  fn create_virtual_controller() -> Result<Self::VirtualDevice, Box<dyn std::error::Error>> {
+  fn create_virtual_controller() -> Result<Self::VirtualDevice, ControllerError> {
     let controller = Self::VirtualDevice::default();
     Ok(controller)
   }
@@ -365,7 +365,7 @@ fn map_key(key: &Keycode) -> Option<Key> {
 impl PlatformControllerManager for Controller {
   type Ops = WindowsOps;
 
-  fn try_create() -> Result<Self, Box<dyn std::error::Error>> {
+  fn try_create() -> Result<Self, ControllerError> {
     Ok(Self {
       virtual_device: WindowsOps::create_virtual_controller().unwrap(),
       left_stick: Arc::new(Mutex::new(JoyStickState::default())),

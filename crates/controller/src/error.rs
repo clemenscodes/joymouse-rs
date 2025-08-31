@@ -42,3 +42,9 @@ impl std::fmt::Display for ControllerError {
 }
 
 impl std::error::Error for ControllerError {}
+
+impl From<ControllerError> for tauri::ipc::InvokeError {
+  fn from(err: ControllerError) -> Self {
+    tauri::ipc::InvokeError::from(err.to_string())
+  }
+}
