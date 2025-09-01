@@ -7,7 +7,7 @@
         "beforeDevCommand": "moon run ui:dev",
         "devUrl": "http://localhost:1420",
         "beforeBuildCommand": "moon run ui:build",
-        "frontendDist": "../../packages/dist/ui/browser"
+        "frontendDist": "../../ui/dist/browser"
     },
     "app": {
         "windows": [
