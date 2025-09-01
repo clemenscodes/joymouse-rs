@@ -24,13 +24,15 @@ impl Default for VirtualDevice {
     let target_id = TargetId::XBOX360_WIRED;
     let mut handle = XTarget::new(client, target_id);
 
-    if handle.plugin().is_err() {
-      eprintln!("Failed to plugin virtual controller");
+    if let Err(err) = handle.plugin() {
+      eprintln!("Failed to plugin virtual controller: {err}");
       std::process::exit(1);
     }
 
-    if handle.wait_ready().is_err() {
-      eprintln!("Failed to wait for virtual controller");
+    std::thread::sleep(std::time::Duration::from_millis(2000));
+
+    if let Err(err) = handle.wait_ready() {
+      eprintln!("Failed to wait for virtual controller: {err} ");
       std::process::exit(1);
     }
 

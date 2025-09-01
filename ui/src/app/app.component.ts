@@ -1,11 +1,11 @@
 import { Component } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 
 import { invoke } from '@tauri-apps/api/core';
 
 @Component({
     selector: 'app-root',
-    imports: [CommonModule],
+    imports: [],
     templateUrl: './app.component.html',
     styleUrl: './app.component.css'
 })
