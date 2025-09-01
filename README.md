@@ -12,30 +12,30 @@ or camera-driven games where mouse precision is key.
 
 ## ✨ Features
 
-- 🖱️ **Mouse → Right Analog Stick** mapping
-- 🎮 **Virtual Controller Emulation**
-  - **Linux:** Uses `evdev` for input parsing and `uinput` to create a virtual controller
-  - **Windows:** Uses `device query` for input and [`ViGEmClient`](https://github.com/ViGEm/ViGEmClient) + [ViGEmBus](https://github.com/ViGEm/ViGEmBus) for virtual gamepad creation
-- ⚙️ **Customizable Settings**
-- 🧭 Auto recenter analog stick after idle
-- 🐧 **Linux support** (fully functional)
-- 💻 **Windows support** (in progress)
-- 🔒 Built with **modern Rust** (≥1.87.0)
+-   🖱️ **Mouse → Right Analog Stick** mapping
+-   🎮 **Virtual Controller Emulation**
+    -   **Linux:** Uses `evdev` for input parsing and `uinput` to create a virtual controller
+    -   **Windows:** Uses `device query` for input and [`ViGEmClient`](https://github.com/ViGEm/ViGEmClient) + [ViGEmBus](https://github.com/ViGEm/ViGEmBus) for virtual gamepad creation
+-   ⚙️ **Customizable Settings**
+-   🧭 Auto recenter analog stick after idle
+-   🐧 **Linux support** (fully functional)
+-   💻 **Windows support** (in progress)
+-   🔒 Built with **modern Rust** (≥1.87.0)
 
 ---
 
 ## 🖥️ How It Works
 
-- **Linux:**
+-   **Linux:**
 
-  - Reads input events using [`evdev`](https://www.freedesktop.org/wiki/Software/libevdev/)
-  - Creates a virtual device via [`uinput`](https://www.kernel.org/doc/html/latest/input/uinput.html)
-  - Emits events as if from a real controller
+    -   Reads input events using [`evdev`](https://www.freedesktop.org/wiki/Software/libevdev/)
+    -   Creates a virtual device via [`uinput`](https://www.kernel.org/doc/html/latest/input/uinput.html)
+    -   Emits events as if from a real controller
 
-- **Windows:**
-  - Parses events using device APIs
-  - Emulates a virtual controller using [`ViGEmClient`](https://github.com/ViGEm/ViGEmClient)
-    and [`ViGEmBus`](https://github.com/ViGEm/ViGEmBus)
+-   **Windows:**
+    -   Parses events using device APIs
+    -   Emulates a virtual controller using [`ViGEmClient`](https://github.com/ViGEm/ViGEmClient)
+        and [`ViGEmBus`](https://github.com/ViGEm/ViGEmBus)
 
 ---
 
@@ -114,8 +114,8 @@ cargo build --release
 
 JoyMouse uses two TOML configuration files located in your OS-specific configuration directory:
 
-- **Linux:** `~/.config/joymouse/`
-- **Windows:** `%APPDATA%\joymouse\`
+-   **Linux:** `~/.config/joymouse/`
+-   **Windows:** `%APPDATA%\joymouse\`
 
 ### **1. joymouse.toml** – Mouse & Stick Settings
 
@@ -205,10 +205,10 @@ select = ["tab"]
 
 ### **Key Notes**
 
-- Multiple keys can be bound to the same action by listing them in an array.
-- Supported input names:
-  - **Keyboard keys**: `a`, `space`, `enter`, `tab`, `up`, `down`, etc.
-  - **Mouse buttons**: `mouse_left`, `mouse_right`, `mouse_side`, `mouse_extra`.
+-   Multiple keys can be bound to the same action by listing them in an array.
+-   Supported input names:
+    -   **Keyboard keys**: `a`, `space`, `enter`, `tab`, `up`, `down`, etc.
+    -   **Mouse buttons**: `mouse_left`, `mouse_right`, `mouse_side`, `mouse_extra`.
 
 ## Contributing
 

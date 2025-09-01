@@ -1,0 +1,9 @@
+tasks:
+  dev:
+    command: 'cargo tauri dev'
+    local: true
+    inputs:
+      - 'src/**/*'
+      - 'icons/**/*'
+      - 'build.rs'
+      - 'Cargo.toml'

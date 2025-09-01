@@ -3,3 +3,8 @@
 .direnv
 result
 **_logs
+**/node_modules
+**/.angular
+# moon
+.moon/cache
+.moon/docker
